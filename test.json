@@ -1,0 +1,210 @@
+{
+  "simulation": {
+    "start_time": "2026-02-18T00:00:00.0000",
+    "interval": 5400,
+    "step": 1.0,
+    "output_step": 1.0
+  },
+  "spacecraft": {
+    "state_vector": [6900, 0.0, 0.0, 0.0, 7.6, 0.0],
+    "quaternion": [0.656306, -0.093278, -0.615255, 0.426641],
+    "angular_velocity": [0.0, 0.0, 0.0],
+    "inertia_tensor": [40932.0, 42617.0, 35066.0],
+    "mass": 6600.0
+  },
+  "geometry":
+  {
+    "polygons":
+    {
+      "count": 6,
+      "parameters": [
+        {
+          "position": [1.56125, 0.0, 0.0],
+          "normal": [1.0, 0.0, 0.0],
+          "area": 0.9551567,
+          "albedo": 0.40,
+          "specularity": 0.26
+        },
+        {
+          "position": [-1.56125, 0.0, 0.0],
+          "normal": [-1.0, 0.0, 0.0],
+          "area": 0.9551567,
+          "albedo": 0.40,
+          "specularity": 0.26
+        },
+        {
+          "position": [0.0, 0.65975, 0.0],
+          "normal": [0.0, 0.766044, -0.642787],
+          "area": 3.1554792,
+          "albedo": 0.05,
+          "specularity": 0.30
+        },
+        {
+          "position": [0.0, -0.65975, 0.0],
+          "normal": [0.0, -0.766044, -0.642787],
+          "area": 3.1554792,
+          "albedo": 0.05,
+          "specularity": 0.30
+        },
+        {
+          "position": [0.0, 0.0, 0.3875],
+          "normal": [0.0, 0.0, 1.0],
+          "area": 6.0711120,
+          "albedo": 0.68,
+          "specularity": 0.20
+        },
+        {
+          "position": [0.0, 0.0, -0.3875],
+          "normal": [0.0, 0.0, -1.0],
+          "area": 2.1673620,
+          "albedo": 0.05,
+          "specularity": 0.30
+        }
+      ]
+    }
+  },
+  "control_systems": {
+    "reaction_wheels": {
+        "count": 4,
+        "parameters": [ 
+          {
+            "location": [0.0, 0.0, 0.0],
+            "angles": [30, -90],
+            "inertia": [0.001, 0.001, 0.063],
+            "mass": 5.0,
+            "initial_speed": [0.0, 0.0, 0.0, 0.0],
+            "speed_limit": 628.0,
+            "pyramid_apex": "X",
+            "dump_speed": 5,
+            "acc_speed": 20
+          }
+        ]
+      },
+    "pulse_engines": {
+      "count": 8,
+      "parameters": [
+        {
+          "position": [0.0, 1.0, 1.24],
+          "limits": [0.0, 0.0, 2697.0],
+          "mass": 100.0,
+        },
+        {
+          "position": [0.0, -1.0, 1.24],
+          "limits": [0.0, 0.0, 2697.0],
+          "mass": 100.0,
+        },
+        {
+          "position": [0.0, -1.0, -1.24],
+          "limits": [0.0, 0.0, -2697.0],
+          "mass": 100.0,
+        },
+        {
+          "position": [0.0, 1.0, -1.24],
+          "limits": [0.0, 0.0, -2697.0],
+          "mass": 100.0
+        },
+        {
+          "position": [0.776, 1.145, 1.145],
+          "limits": [-2697.0, 0.0, 0.0],
+          "mass": 100.0
+        },
+        {
+          "position": [0.776, -1.145, 1.145],
+          "limits": [-2697.0, 0.0, 0.0],
+          "mass": 100.0
+        },
+        {
+          "position": [0.776, -1.145, -1.145],
+          "limits": [-2697.0, 0.0, 0.0],
+          "mass": 100.0
+        },
+        {
+          "position": [0.776, 1.145, -1.145],
+          "limits": [-2697.0, 0.0, 0.0],
+          "mass": 100.0
+        }
+      ]
+    },
+    "control_order": {
+      "first": "r",
+      "second": "0"
+    }
+  },
+  "attitude_modes": {
+    "slew_motion": {
+      "count": 2,
+      "parameters": [
+          {
+            "quaternion": [1.0, 0.0, 0.0, 0.0],
+            "start_time": "2026-02-18T00:00:01.0000",
+            "stop_time": "2026-02-18T00:40:00.000"
+          },
+          {
+            "quaternion": [0.953355, 0.087541, -0.087897, 0.27518],
+            "start_time": "2026-02-18T00:51:00.000",
+            "stop_time": "2026-02-18T01:00:00.000"
+          }
+      ]
+    },
+    "stop_motion": {
+      "count": 2,
+      "parameters": [
+          {
+            "start_time": "2026-02-18T00:40:00.000",
+            "stop_time": "2026-02-18T00:50:00.000"
+          },
+          {
+            "start_time": "2026-02-18T01:00:00.000",
+            "stop_time": "2026-02-18T01:20:00.000"
+          }
+        ]
+    },
+    "dump": {
+      "count": 1,
+      "parameters": [
+        {
+          "start_time": "2026-02-18T01:20:00.000",
+          "stop_time": "2026-02-18T01:22:00.000"
+        }
+      ]
+    }
+  },
+  "forces": {
+    "gravity_force": true,
+    "gravity_order": 36,
+    "outer_gravity": false,
+    "solar_pressure_force": false,
+    "gravity_torque": true,
+    "solar_pressure_torque": true,
+    "mangetic_torque": false
+  },
+  "filenames": {
+  "output": {
+    "save_path": "./ephemeris.txt",
+    "telemetry_path": "./telemetry.txt",
+    "output_info_path": "./output_info.txt"
+    },
+  "input": {
+    "tls_path": "../Files/naif0012.tls",
+    "eop_path": "../Files/eop.txt"
+  }
+  },
+  "backup":
+  {
+    "state_vector": [5957.4, 0.0, 3439.5, 0.0, 7.6, 0.0],
+    "start_time": "2031-02-01T00:00:00.0000",
+    "stop_motion":
+    [
+          {
+            "quaternion": [0.616624, -0.146546, -0.604784, 0.482218],
+            "start_time": "2030-02-01T01:00:00.00",
+            "stop_time": "2031-02-01T00:05:00.00"
+          },
+          {
+            "quaternion": [0.162398, -0.501009, -0.369093, 0.765759],
+            "start_time": "2031-02-01T00:45:00.00",
+            "stop_time": "2032-02-01T00:30:00.00"
+          }
+    ]
+  }
+}

@@ -1,0 +1,125 @@
+{
+	"simulation":
+	{
+		"start_time": "2019-01-01T00:00:18.0",
+		"interval": 86400.0,
+		"step": 1.0
+	},
+	"spacecraft":
+	{
+		"state_vector": [5395.539882983215,	3046.584817837849,	-2974.184049450432,	-2.931425056314142,	-1.476602698526782, -6.873176821951122],
+		"quaternion": [0.8162395461185519, 0.1429772153870053, -0.5201995673864366, 0.2066468708501629],
+		"angular_velocity": [0.0, -0.0011073, 0.0],
+		"inertia_tensor": [110.491, 580.673, 649.690],
+		"mass": 601.214
+	},
+	"geometry":
+	{
+		"polygons":
+		{
+			"count": 6,
+			"parameters": [
+				{
+					"position": [1.56125, 0.0, 0.0],
+					"normal": [1.0, 0.0, 0.0],
+					"area": 0.9551567,
+					"albedo": 0.40,
+					"specularity": 0.26
+				},
+				{
+					"position": [-1.56125, 0.0, 0.0],
+					"normal": [-1.0, 0.0, 0.0],
+					"area": 0.9551567,
+					"albedo": 0.40,
+					"specularity": 0.26
+				},
+				{
+					"position": [0.0, 0.65975, 0.0],
+					"normal": [0.0, 0.766044, -0.642787],
+					"area": 3.1554792,
+					"albedo": 0.05,
+					"specularity": 0.30
+				},
+				{
+					"position": [0.0, -0.65975, 0.0],
+					"normal": [0.0, -0.766044, -0.642787],
+					"area": 3.1554792,
+					"albedo": 0.05,
+					"specularity": 0.30
+				},
+				{
+					"position": [0.0, 0.0, 0.3875],
+					"normal": [0.0, 0.0, 1.0],
+					"area": 6.0711120,
+					"albedo": 0.68,
+					"specularity": 0.20
+				},
+				{
+					"position": [0.0, 0.0, -0.3875],
+					"normal": [0.0, 0.0, -1.0],
+					"area": 2.1673620,
+					"albedo": 0.05,
+					"specularity": 0.30
+				}
+			]
+		}
+	},
+	"control_systems":
+	{
+		"magnetorquers":
+		{
+			"count": 3,
+			"parameters": [
+				{
+					"current": 0.0,
+					"max_dipole": [10.0, 0.0, 0.0],
+					"mass": 0.5
+				},
+				{
+					"current": 0.0,
+					"max_dipole": [0.0, 10.0, 0.0],
+					"mass": 0.5
+				},
+				{
+					"current": 0.0,
+					"max_dipole": [0.0, 0.0, 10.0],
+					"mass": 0.5
+				}
+			]
+		},
+		"control_order":
+		{
+			"first": "m",
+			"second": "0"
+		}
+	},
+	"attitude_modes":
+	{
+		"scan_motion": {
+			"count": 1,
+			"parameters":[
+				{
+					"velocity": [0.0, -0.0011073, 0.0], 
+					"start_time": "2019-01-01T00:00:19.0",
+					"stop_time": "2020-01-01T00:00:00.0"
+				}
+			]
+		}
+	},
+	"forces":
+	{
+		"gravity_order": 30,
+		"gravity_force": true,
+		"outer_gravity": true,
+		"solar_pressure_force": true,
+		"gravity_torque": true,
+		"solar_pressure_torque": true
+	},
+	"filenames":
+	{
+		"output": {
+			"save_path": "./soap_rotation.txt",
+			"telemetry_path": "./gracefo_soap_rotation_telemetry.txt"
+		}
+	}
+}
