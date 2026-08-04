@@ -17,6 +17,7 @@ matrix.cpp
 orbit_integrator.cpp
 polygon.cpp
 position_vector.cpp
+quaternion.cpp
 reaction_wheel.cpp
 satellite.cpp
 state_vector.cpp
@@ -24,14 +25,42 @@ tests.cpp
 torques.cpp
 )
 
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(JSONCPP jsoncpp)
+find_package(jsoncpp CONFIG QUIET)
+if(jsoncpp_FOUND)
+    target_link_libraries(${PROJECT_NAME} PRIVATE JsonCpp::JsonCpp)
+else()
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(JSONCPP REQUIRED jsoncpp)
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${JSONCPP_LIBRARIES})
+    target_include_directories(${PROJECT_NAME} PRIVATE ${JSONCPP_INCLUDE_DIRS})
+endif()
 
-target_link_libraries(${PROJECT_NAME}
-${CMAKE_SOURCE_DIR}/cspice.a
-${CMAKE_SOURCE_DIR}/libsofa_c.a
-${JSONCPP_LIBRARIES})
+find_path(SOAP_JSON_H_DIR json.h PATH_SUFFIXES json HINTS ${JSONCPP_INCLUDE_DIRS})
+if(NOT SOAP_JSON_H_DIR)
+    message(FATAL_ERROR "json.h not found. Install jsoncpp (vcpkg: 'vcpkg install jsoncpp').")
+endif()
+target_include_directories(${PROJECT_NAME} PRIVATE ${SOAP_JSON_H_DIR})
 
-target_include_directories(${PROJECT_NAME}
-PRIVATE ${CMAKE_SOURCE_DIR}/
-PRIVATE /media/alexey/Disk/Astronomy/boost_1_84_0/)
+if(WIN32)
+    set(SOAP_CSPICE "${CMAKE_CURRENT_SOURCE_DIR}/cspice.lib")
+    set(SOAP_SOFA   "${CMAKE_CURRENT_SOURCE_DIR}/sofa_lib.lib")
+else()
+    set(SOAP_CSPICE "${CMAKE_CURRENT_SOURCE_DIR}/cspice.a")
+    set(SOAP_SOFA   "${CMAKE_CURRENT_SOURCE_DIR}/libsofa_c.a")
+endif()
+
+foreach(_lib ${SOAP_CSPICE} ${SOAP_SOFA})
+    if(NOT EXISTS ${_lib})
+        message(FATAL_ERROR "Required library not found: ${_lib}")
+    endif()
+endforeach()
+
+target_link_libraries(${PROJECT_NAME} PRIVATE ${SOAP_CSPICE} ${SOAP_SOFA})
+
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+if(MSVC)
+    target_compile_options(${PROJECT_NAME} PRIVATE /permissive- /bigobj)
+else()
+    target_link_libraries(${PROJECT_NAME} PRIVATE m)
+endif()
