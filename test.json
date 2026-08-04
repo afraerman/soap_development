@@ -86,17 +86,17 @@
         {
           "position": [0.0, 1.0, 1.24],
           "limits": [0.0, 0.0, 2697.0],
-          "mass": 100.0,
+          "mass": 100.0
         },
         {
           "position": [0.0, -1.0, 1.24],
           "limits": [0.0, 0.0, 2697.0],
-          "mass": 100.0,
+          "mass": 100.0
         },
         {
           "position": [0.0, -1.0, -1.24],
           "limits": [0.0, 0.0, -2697.0],
-          "mass": 100.0,
+          "mass": 100.0
         },
         {
           "position": [0.0, 1.0, -1.24],
@@ -176,7 +176,7 @@
     "solar_pressure_force": false,
     "gravity_torque": true,
     "solar_pressure_torque": true,
-    "mangetic_torque": false
+    "magnetic_torque": false
   },
   "filenames": {
   "output": {
