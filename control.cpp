@@ -262,7 +262,7 @@ int Control::setRotationFromQuat(Satellite& sat, const Quaternion& init, const Q
     else
     {
         // std::cout << "Too little time to perform rotation from " << init << " to " << target << std::endl;
-        std::cout << "Need at least " << min_slew_time << " seconds to perform rotation, but only " <<  gap << " given" << std::endl;
+        std::cerr << "\033[33m#9 Need at least " << min_slew_time << " seconds to perform rotation, but only " <<  gap << " given \033[0m" << std::endl;
         return 1;
     }
 
@@ -468,7 +468,8 @@ PositionVector Control::redistributeCompensationMomentum(const PositionVector& t
         return PositionVector({p1, p2, p3, p4, p5, p6, p7, p8});
     }
 
-    std::cout << "NO PLAN FOR REDISTRIBUTING " << angles.length() << " REACTION WHEELS" << std::endl;
+    std::cerr << "\033[31m#21 NO PLAN FOR REDISTRIBUTING " << angles.length() << " REACTION WHEELS \033[0m" << std::endl;
+    std::exit(EXIT_FAILURE);
     return PositionVector({0.0, 0.0, 0.0, 0.0});
 }
 
@@ -513,7 +514,8 @@ PositionVector Control::combineReactionWheelsBlockMomentum(const PositionVector&
     }
     else
     {
-        std::cout << "NO PLAN FOR COMBINING " << momentums.length() << " REACTION WHEELS" << std::endl;
+        std::cerr << "\033[31m#21 NO PLAN FOR COMBINING " << momentums.length() << " REACTION WHEELS\033[0m" << std::endl;
+        std::exit(EXIT_FAILURE);
         return PositionVector({0.0, 0.0, 0.0});
     }
 
@@ -531,7 +533,8 @@ PositionVector Control::combineReactionWheelsBlockMomentum(const PositionVector&
     }
     else
     {
-        std::cout << "Impossible apex " << apex << std::endl;
+        std::cerr << "\033[31m#11_apex Impossible apex " << apex << "\033[0m" << std::endl;
+        std::exit(EXIT_FAILURE);
         return PositionVector({0.0, 0.0, 0.0});
     }
 }
@@ -597,7 +600,8 @@ Matrix Control::getTransformMatrixFromApex(const PositionVector& angles, const s
         });
     }
 
-    std::cout << "No transofmation matrirx found for apex " << apex << std::endl;
+    std::cerr << "\033[31m#23 No transofmation matrirx found for apex " << apex << "\033[0m" << std::endl;
+    std::exit(EXIT_FAILURE);
     return Matrix(4, 3);
 }
 
@@ -814,7 +818,7 @@ void Control::distributeTimeForSlew(const Satellite& sat, const double time, con
 
 void Control::makeCheckpoint(const Time& t, const Satellite& s)
 {
-    std::cout << "At time " << t << " checkpoint created" << std::endl;
+    std::cout << "\033[34mAt time " << t << " checkpoint created\033[0m" << std::endl;
     checkpoint_time = t;
     checkpoint_sat = s;
 }

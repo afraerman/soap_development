@@ -179,7 +179,7 @@ int OrbitIntegrator::getNextState(Satellite& sat, Time& t)
 	std::ifstream orbit_file(sat.getOrbitFilename());
 	if (!orbit_file.is_open())
 	{
-		std::cout << "No such orbit file" << std::endl;
+		std::cerr << "\033[31m#08 No such orbit file " << sat.getOrbitFilename() << "\033[0m" <<  std::endl;
 		return 1;
 	}
 
@@ -225,13 +225,13 @@ void OrbitIntegrator::integrationMethod(Satellite& sat, Time& t, double t_final,
 	
 	//PositionVector new_position;
 	PositionVector _mult;
-	PositionVector powered_substeps;
 	PositionVector velocity = sat.getVelocity();
 	StateVector st, initial_state;
 
 	initial_state = sat.getState();
 	
 	int l = (int)substeps.size();
+	PositionVector powered_substeps = PositionVector(l);
 
 	for (int iteration = 0; iteration < number_of_iterations; iteration++)
 	{
@@ -351,4 +351,5 @@ OrbitIntegrator::~OrbitIntegrator()
 {
 	if (!Astrometry::no_ephemeris)
 		kclear_c();
+	Astrometry::no_ephemeris = true;
 };

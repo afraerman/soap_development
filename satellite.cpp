@@ -397,7 +397,7 @@ std::vector<Satellite::OutputInfo> Satellite::getOutputInfo() const
 
 Satellite::OutputInfo Satellite::getNextTarget() const
 {
-	if (target_index < all_modes.size())
+	if (target_index < (int)all_modes.size())
 		return all_modes[target_index];
 
 	OutputInfo oi;
@@ -457,7 +457,7 @@ void Satellite::deleteFailedTarget()
 		}
 	}
 
-	std::cout << "Mode was deleted, " << (int)all_modes.size() << " modes left" << std::endl;
+	std::cerr << "\033[32mMode was deleted, " << (int)all_modes.size() - target_index << " modes left\033[0m" << std::endl;
 }
 
 void Satellite::targetFailed()
@@ -480,7 +480,7 @@ int Satellite::checkAttitudeModes()
 	{
 		if (scan_periods[scan][1] >= scan_periods[scan + 1][0])
 		{
-			std::cout << "Scan modes self overlap" << std::endl;
+			std::cerr << "\033[31m#24 Scan modes self overlap\033[0m" << std::endl;
 			return 1;
 		}
 	}
@@ -488,7 +488,7 @@ int Satellite::checkAttitudeModes()
 	{
 		if (stop_periods[stop][1] > stop_periods[stop + 1][0]) 
 		{
-			std::cout << "Stop modes self overlap" << std::endl;
+			std::cerr << "\033[31m#24 Stop modes self overlap\033[0m" << std::endl;
 			return 1;
 		}
 	}
@@ -496,7 +496,7 @@ int Satellite::checkAttitudeModes()
 	{
 		if (dump_periods[dump][1] > dump_periods[dump + 1][0]) 
 		{
-			std::cout << "Dump modes self overlap" << std::endl;
+			std::cerr << "\033[31m#24 Dump modes self overlap\033[0m" << std::endl;
 			return 1;
 		}
 	}
@@ -504,7 +504,7 @@ int Satellite::checkAttitudeModes()
 	{
 		if (slew_periods[slew][1] > slew_periods[slew + 1][0]) 
 		{
-			std::cout << "Slew modes self overlap" << std::endl;
+			std::cerr << "\033[31m#24 Slew modes self overlap\033[0m" << std::endl;
 			return 1;
 		}
 	}
@@ -516,12 +516,12 @@ int Satellite::checkAttitudeModes()
 	{
 		if ((scan_periods[i][0] >= stop_periods[j][0]) && (scan_periods[i][0] <= stop_periods[j][1])) // scan while stop
 		{
-			std::cout << "Scan modes overlap with stop modes" << std::endl;
+			std::cerr << "\033[31m#24 Scan modes overlap with stop modes\033[0m" << std::endl;
 			return 1;
 		}
 		if ((stop_periods[j][0] >= scan_periods[i][0]) && (stop_periods[j][0] <= scan_periods[i][1])) // stop while scan
 		{
-			std::cout << "Stop modes overlap with scan modes" << std::endl;
+			std::cerr << "\033[31m#24 Stop modes overlap with scan modes\033[0m" << std::endl;
 			return 1;
 		}
 
@@ -544,12 +544,12 @@ int Satellite::checkAttitudeModes()
 	{
 		if ((dump_periods[i][0] > stop_periods[j][0]) && (dump_periods[i][0] < stop_periods[j][1])) // dump while stop
 		{
-			std::cout << "Dump modes overlap with stop modes" << std::endl;
+			std::cerr << "\033[31m#24 Dump modes overlap with stop modes\033[0m" << std::endl;
 			return 1;
 		}
 		if ((stop_periods[j][0] > dump_periods[i][0]) && (stop_periods[j][0] < dump_periods[i][1])) // stop while dump
 		{
-			std::cout << "Stop modes overlap with dump modes" << std::endl;
+			std::cerr << "\033[31m#24 Stop modes overlap with dump modes\033[0m" << std::endl;
 			return 1;
 		}
 
@@ -567,12 +567,12 @@ int Satellite::checkAttitudeModes()
 	{
 		if ((slew_periods[i][0] > stop_periods[j][0]) && (slew_periods[i][0] < stop_periods[j][1])) // slew while stop
 		{
-			std::cout << "Slew modes overlap with stop modes" << std::endl;
+			std::cerr << "\033[31m#24 Slew modes overlap with stop modes\033[0m" << std::endl;
 			return 1;
 		}
 		if ((stop_periods[j][0] > slew_periods[i][0]) && (stop_periods[j][0] < slew_periods[i][1])) // stop while slew
 		{
-			std::cout << "Stop modes overlap with slew modes" << std::endl;
+			std::cerr << "\033[31m#24 Stop modes overlap with slew modes\033[0m" << std::endl;
 			return 1;
 		}
 
@@ -590,12 +590,12 @@ int Satellite::checkAttitudeModes()
 	{
 		if ((slew_periods[i][0] > dump_periods[j][0]) && (slew_periods[i][0] < dump_periods[j][1])) // slew while dump
 		{
-			std::cout << "Slew modes overlap with dump modes" << std::endl;
+			std::cerr << "\033[31m#24 Slew modes overlap with dump modes\033[0m" << std::endl;
 			return 1;
 		}
 		if ((dump_periods[j][0] > slew_periods[i][0]) && (dump_periods[j][0] < slew_periods[i][1])) // dump while slew
 		{
-			std::cout << "Dump modes overlap with slew modes" << std::endl;
+			std::cerr << "\033[31m#24 Dump modes overlap with slew modes\033[0m" << std::endl;
 			return 1;
 		}
 
@@ -922,7 +922,8 @@ PositionVector Satellite::setControlMomentum(const PositionVector& momentum_to_c
 	}
 	else
 	{
-		std::cout << "No such control element" << std::endl;
+		std::cerr << "\033[31m#11_control_order No such control element " << controller  << "\033[0m" << std::endl;
+		std::exit(EXIT_FAILURE);
 		return momentum_to_compensate;
 	}
 	// squeeze as much momentum as I can
@@ -1167,6 +1168,11 @@ void Satellite::setMagneticMomentumFromFile(const PositionVector& magn)
 }
 PositionVector Satellite::setReactionWheelsMomentum(const PositionVector& momentum_to_compensate)
 {
+	if (reaction_wheels.empty())
+	{
+		return momentum_to_compensate;
+	}
+
 	PositionVector new_momentums;
 	PositionVector local_angles, initial_momentums;
 	PositionVector momentum = momentum_to_compensate;
@@ -1417,7 +1423,7 @@ void Satellite::rotateSolarPanels(const PositionVector& s)
 		int rai = solar_panels[i].getRotationAxisIndex();
 		if (rai == -1)
 		{
-			std::cout << "Solar panel #" << i << " can not be rotated" << std::endl;
+			std::cerr << "\033[33m#9 Solar panel #" << i << " can not be rotated\033[0m" << std::endl;
 			continue;
 		}
 		PositionVector n = solar_panels[i].getNormal();
@@ -1481,7 +1487,8 @@ void Satellite::rotateSolarPanels(const PositionVector& s)
 		}
 		else
 		{
-			std::cout << "Incorrect value of rai = " << rai << " on solar panel #" << i << std::endl;
+			std::cerr << "\033[31m#11_rai Incorrect value of rai = " << rai << " on solar panel #" << i << "\033[0m" << std::endl;
+			std::exit(EXIT_FAILURE);
 			continue;
 		}
 	}

@@ -16,7 +16,11 @@ void AttitudeIntegrator::compute_momentum(const Matrix& I, const PositionVector&
 	{
 		momentum = ((mul(I, phi) + rho * (step / 2.0)) * sqrt(1.0 - phi.dot(phi)) + phi.cross(mul(I, phi) + rho * (step / 2.0))) * (2.0 / step);
 	}
-	else std::cout << "wtf is this operation?" << '\n';
+	else
+	{
+		std::cerr << "\033[31mUnknown operation: " << operation << "\033[0m" << '\n';
+		std::exit(EXIT_FAILURE);
+	}
 }
 
 bool AttitudeIntegrator::scan_time(const Satellite& sat, const Time& time) const
@@ -61,13 +65,88 @@ bool AttitudeIntegrator::slew_time(const Satellite& sat, const Time& time) const
 	return false;
 }
 
+int AttitudeIntegrator::acquire_target(Satellite& sat, Time& time, const double step, const PositionVector& torque)
+{
+	Control::makeCheckpoint(time, sat);
+	sat.setSetbackTime(0.0);
+	auto target = sat.getNextTarget();
+	sat.target_index++;
+
+	// sat.setTargetDuration(time);
+	end_of_current_target = (int)std::round(target.duration/step);
+	elapsed_time = (int)std::round(-1.0 * (target.start_time - time));
+
+	mode = target.mode;
+	target_time = target.start_time;
+	if (mode == "scan")
+		//target_momentum = sat.getTargetMomentum(time);
+		target_momentum = target.target_momentum;
+	else if (mode == "slew")
+		//target_attitude = sat.getTargetQuaternion(time);
+		target_attitude = target.target_quat;
+	std::cout << "\033[32mCurrent time " << time << '\t' << "Target time "  << target_time << '\t' << "Target " << mode << "\033[0m" << std::endl;
+	if (mode != "none") // there is a real target
+	{
+		t = 0.0;
+		//gap = target_time - time;
+		gap = target.duration;
+		Control::setInitialMomentum(sat.getAngularMomentum());
+		std::cout << "Gap = " << gap << std::endl;
+		Control::setGap(gap);
+		Control::setTargetTime(gap);
+		
+		// Control initial parameters determination
+		if (mode == "scan")
+		{
+			// Don't need for MM, so probably doesn't work right now
+			Control::setTargetMomentum(target_momentum);
+			Control::setRotationMomentum(target_momentum);
+			std::cout << "Target acquired: " << target_momentum << std::endl;
+			real_scan_phi = target_momentum;
+		}
+		else if (DEVELOPER::attitude_testing_mode)
+		{
+			std::cout << "Developer mode" << std::endl;
+		}
+		else if (mode == "slew")
+		{
+			// Stupid 3-axis rotation
+			//Control::defactorTarget(sat.getInertiaTensor(), sat.getQuaternion(), target_attitude);
+			
+			// "Smart" one-axis rotation
+			//if (std::isnan(torque[0])) torque = future_torque.get();
+			int res = Control::setRotationFromQuat(sat, sat.getQuaternion(), target_attitude, gap, step, initial_momentum, torque);
+			if (res) // rotation not possible (to little time)
+			{
+				//skip_until = sat.getEndOfTarget(time);
+				//integration_error = true;
+				std::cout << "\033[34mAt time " << time << " back to checkpoint\033[0m" << std::endl;
+				Control::getCheckpoint(time, sat);
+				sat.setSetbackTime(sat.getSetbackTime() + step);
+				sat.targetFailed();
+				target_acquired = false;
+				time = time + (-1)*step;
+				sat.setUpdateAngularMomentum(sat.getAngularMomentum());
+				sat.setUpdateQuaternion(sat.getQuaternion());
+				elapsed_time = 0;
+				end_of_current_target = 0;
+				return 1;
+			}
+			std::cout << "\033[32mTarget acquired: ";
+			std::cout << target_attitude << "\033[0m" << std::endl;
+		}
+	}
+	target_acquired = true;
+	return 0;
+}
 
 void AttitudeIntegrator::integrationMethod(Satellite& sat, Time& time, double step, bool from_the_start)
 {
-	auto future_torque = std::async(std::launch::async, &Torques::allTorques, std::ref(sat), std::ref(time));
+	//auto future_torque = std::async(std::launch::async, &Torques::allTorques, std::ref(sat), std::ref(time));
 
 	// All torques influencing the satellite
-	PositionVector torque = PositionVector({ std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN() });
+	//PositionVector torque = PositionVector({ std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN() });
+	PositionVector torque = Torques::allTorques(sat, time);
 	
 	// Momentum to compensate with control systems available
 	PositionVector momentum_to_compensate = PositionVector({ 0.0, 0.0, 0.0 });
@@ -92,7 +171,7 @@ void AttitudeIntegrator::integrationMethod(Satellite& sat, Time& time, double st
 	Matrix compensation_matrix;
 	if (from_the_start)
 	{
-		initial_momentum = -1.0 * mul(sat.getInertiaTensor(), sat.getAngularVelocity());
+		initial_momentum = mul(sat.getInertiaTensor(), sat.getAngularVelocity());
 		sat.setAngularMomentum(initial_momentum);
 		phi = sat.getAngularVelocity() * (step / 2.0);
 		end_of_current_target = 0;
@@ -114,6 +193,12 @@ void AttitudeIntegrator::integrationMethod(Satellite& sat, Time& time, double st
 
 	if (dump_time(sat, time))
 	{
+		if ((not target_acquired) && (from_the_start))
+		{
+			int res = acquire_target(sat, time, step, torque);
+			if (res) return;
+		}
+
 		target_acquired = false;
 		// preserve angular momentum
 		momentum_to_compensate = sat.forced_dump('r', step);
@@ -122,14 +207,19 @@ void AttitudeIntegrator::integrationMethod(Satellite& sat, Time& time, double st
 		{
 			sat.setTargetDuration(time, step);
 		}
-		torque = future_torque.get();
+		//torque = future_torque.get();
 		momentum_to_compensate += initial_momentum - torque * step;
 		thrusters_momentum = momentum_to_compensate;
 	}
 	// SCANNING ATTITUDE MODE (preserving angular momentum (angular velocity) (incremential quaternion))
 	else if (scan_time(sat, time)) 
 	{
-		
+		if ((not target_acquired) && (from_the_start))
+		{
+			int res = acquire_target(sat, time, step, torque);
+			if (res) return;
+		}
+
 		/*
 		// Подруливание магнеторкерами
 		// Попытка #1
@@ -197,7 +287,7 @@ void AttitudeIntegrator::integrationMethod(Satellite& sat, Time& time, double st
 			}
 		}
 		*/
-		torque = future_torque.get();
+		//torque = future_torque.get();
 		momentum_to_compensate = initial_momentum - torque * step + Control::getRotationMomentum();
 		momentum_to_compensate = sat.setReactionWheelsMomentum(momentum_to_compensate);
 		momentum_to_compensate = momentum_to_compensate + sat.discharge('r');
@@ -286,8 +376,14 @@ void AttitudeIntegrator::integrationMethod(Satellite& sat, Time& time, double st
 	// CONSTANT ATTITUDE MODE (preserving attitude (quaternion))
 	else if (stop_time(sat, time))
 	{
+		if ((not target_acquired) && (from_the_start))
+		{
+			int res = acquire_target(sat, time, step, torque);
+			if (res) return;
+		}
+
 		target_acquired = false;
-		torque = future_torque.get();
+		//torque = future_torque.get();
 		momentum_to_compensate = initial_momentum - torque * step;
 		//Control::while_stop()
 		for (int i = 0; i < 2; i++)
@@ -327,7 +423,7 @@ void AttitudeIntegrator::integrationMethod(Satellite& sat, Time& time, double st
 			//thrusters_momentum = momentum_to_compensate / step;
 
 
-			std::cout << "At time " << time << " back to checkpoint" << std::endl;
+			std::cout << "\033[34mAt time " << time << " back to checkpoint\033[0m" << std::endl;
 			Control::getCheckpoint(time, sat);
 			sat.setSetbackTime(sat.getSetbackTime() + step);
 			sat.targetFailed();
@@ -354,8 +450,14 @@ void AttitudeIntegrator::integrationMethod(Satellite& sat, Time& time, double st
 	// ONE-ANGLE SLEW MOTION
 	else if (slew_time(sat, time))
 	{
+		if ((not target_acquired) && (from_the_start))
+		{
+			int res = acquire_target(sat, time, step, torque);
+			if (res) return;
+		}
+
 		target_acquired = false;
-		torque = future_torque.get();
+		//torque = future_torque.get();
 		PositionVector torquelike_correction = -1.0 * torque + Control::beforeTarget(t, step, 'm');
 		//PositionVector inertial_correction = initial_momentum - torque * step - Control::beforeTarget(t, step, 'g');
 
@@ -383,7 +485,7 @@ void AttitudeIntegrator::integrationMethod(Satellite& sat, Time& time, double st
 		// THRUSTERS
 		if (correction.norm())
 		{
-			std::cout << "At time " << time << " back to checkpoint" << std::endl;
+			std::cout << "\033[34mAt time " << time << " back to checkpoint\033[0m" << std::endl;
 			Control::getCheckpoint(time, sat);
 			
 			sat.targetFailed();
@@ -408,75 +510,8 @@ void AttitudeIntegrator::integrationMethod(Satellite& sat, Time& time, double st
 		// get next target
 		if (not target_acquired)
 		{
-			Control::makeCheckpoint(time, sat);
-			sat.setSetbackTime(0.0);
-			auto target = sat.getNextTarget();
-			sat.target_index++;
-
-			// sat.setTargetDuration(time);
-			end_of_current_target = (int)std::round(target.duration/step);
-			elapsed_time = (int)std::round(-1.0 * (target.start_time - time));
-
-			mode = target.mode;
-			target_time = target.start_time;
-			if (mode == "scan")
-				//target_momentum = sat.getTargetMomentum(time);
-				target_momentum = target.target_momentum;
-			else if (mode == "slew")
-				//target_attitude = sat.getTargetQuaternion(time);
-				target_attitude = target.target_quat;
-			std::cout << "Current time " << time << '\t' << "Target time "  << target_time << '\t' << "Target " << mode << std::endl;
-			if (mode != "none") // there is a real target
-			{
-				t = 0.0;
-				//gap = target_time - time;
-				gap = target.duration;
-				Control::setInitialMomentum(sat.getAngularMomentum());
-				std::cout << "Gap = " << gap << std::endl;
-				Control::setGap(gap);
-				Control::setTargetTime(gap);
-				
-				// Control initial parameters determination
-				if (mode == "scan")
-				{
-					// Don't need for MM, so probably doesn't work right now
-					Control::setTargetMomentum(target_momentum);
-					Control::setRotationMomentum(target_momentum);
-					std::cout << "Target acquired: " << target_momentum << std::endl;
-					real_scan_phi = target_momentum;
-				}
-				else if (DEVELOPER::attitude_testing_mode)
-				{
-					std::cout << "Developer mode" << std::endl;
-				}
-				else if (mode == "slew")
-				{
-					// Stupid 3-axis rotation
-					//Control::defactorTarget(sat.getInertiaTensor(), sat.getQuaternion(), target_attitude);
-					
-					// "Smart" one-axis rotation
-					if (std::isnan(torque[0])) torque = future_torque.get();
-					int res = Control::setRotationFromQuat(sat, sat.getQuaternion(), target_attitude, gap, step, initial_momentum, torque);
-					if (res) // rotation not possible (to little time)
-					{
-						//skip_until = sat.getEndOfTarget(time);
-						//integration_error = true;
-						std::cout << "At time " << time << " back to checkpoint" << std::endl;
-						Control::getCheckpoint(time, sat);
-						sat.setSetbackTime(sat.getSetbackTime() + step);
-						sat.targetFailed();
-						target_acquired = false;
-						time = time + (-1)*step;
-						sat.setUpdateAngularMomentum(sat.getAngularMomentum());
-						sat.setUpdateQuaternion(sat.getQuaternion());
-						elapsed_time = 0;
-						return;
-					}
-					std::cout << "Target acquired. ";
-					std::cout << target_attitude << std::endl;
-				}
-			}
-			target_acquired = true;
+			int res = acquire_target(sat, time, step, torque);
+			if (res) return;
 		}
 		
 		// perform rotation to match target attitude and momentum
@@ -486,7 +521,7 @@ void AttitudeIntegrator::integrationMethod(Satellite& sat, Time& time, double st
 			// PositionVector torquelike_correction = -1.0 * torque + Control::testingControl(sat.getInertiaTensor(), t, step);
 			// thrusters_momentum = torquelike_correction;
 			//std::cout << t << '\t' << thrusters_momentum << std::endl;
-			if (std::isnan(torque[0])) torque = future_torque.get();
+			//if (std::isnan(torque[0])) torque = future_torque.get();
 			PositionVector inertial_correction = -1.0 * torque * step - Control::testingControl(sat.getInertiaTensor(), t, step);
 			//std::cout << t << '\t' << inertial_correction << std::endl;
 
@@ -500,7 +535,7 @@ void AttitudeIntegrator::integrationMethod(Satellite& sat, Time& time, double st
 		}
 		else if (mode == "scan") // not in use for MM, ignore
 		{
-			if (std::isnan(torque[0])) torque = future_torque.get();
+			//if (std::isnan(torque[0])) torque = future_torque.get();
 			PositionVector torquelike_correction = -1.0 * torque + Control::beforeTarget(t, step, 'm');
 			//PositionVector inertial_correction = initial_momentum - torque * step - Control::beforeTarget(t, step, 'g');
 
@@ -527,15 +562,15 @@ void AttitudeIntegrator::integrationMethod(Satellite& sat, Time& time, double st
 					phi2 = phi;
 
 					gyrostats_momentum = sat.getGyrostatsMomentum() + sat.getReactionWheelsBlockMomentum3d();
-					if (std::isnan(torque[0])) torque = future_torque.get();
+					//if (std::isnan(torque[0])) torque = future_torque.get();
 
 					// Iterations to find new value of phi
 					for (int iteration = 0; iteration < ntrial; iteration++)
 					{
 						if (1.0 - phi.dot(phi) <= 1e-5)
 						{
-							std::cout << "Rotation to a more than 180 degrees per time step on iteration " << iteration << '\n';
-							std::cout << phi << std::endl;
+							std::cerr << "\033[31m#31 Rotation to a more than 180 degrees per time step on iteration " << iteration << '\n';
+							std::cerr << phi << "\033[0m" << std::endl;
 							integration_error = true;
 							return;
 						}
@@ -583,7 +618,7 @@ void AttitudeIntegrator::integrationMethod(Satellite& sat, Time& time, double st
 				//thrusters_momentum = correction;
 
 				sat.targetFailed();
-				std::cout << "At time " << time << " back to checkpoint" << std::endl;
+				std::cout << "\033[34mAt time " << time << " back to checkpoint\033[0m" << std::endl;
 				Control::getCheckpoint(time, sat);
 				sat.setSetbackTime(sat.getSetbackTime() + step);
 				std::cout << time << std::endl;
@@ -604,15 +639,15 @@ void AttitudeIntegrator::integrationMethod(Satellite& sat, Time& time, double st
 	elapsed_time++;
 	gyrostats_momentum = sat.getGyrostatsMomentum() + sat.getReactionWheelsBlockMomentum3d();
 
-	if (std::isnan(torque[0])) torque = future_torque.get();
+	//if (std::isnan(torque[0])) torque = future_torque.get();
 
 	// Iterations to find new value of phi
 	for (int iteration = 0; iteration < ntrial; iteration++)
 	{
 		if (1.0 - phi.dot(phi) <= 1e-5)
 		{
-			std::cout << "Rotation to a more than 180 degrees per time step on iteration " << iteration << '\n';
-			std::cout << phi << std::endl;
+			std::cerr << "\033[31m#31 Rotation to a more than 180 degrees per time step on iteration " << iteration << '\n';
+			std::cerr << phi << "\033[0m" << std::endl;
 			integration_error = true;
 			return;
 		}
@@ -640,7 +675,7 @@ void AttitudeIntegrator::integrationMethod(Satellite& sat, Time& time, double st
 
 	if (phi.dot(phi) > 1.0 - 1e-5)
 	{
-		std::cout << "Too much rotation: phi = " << phi << std::endl;
+		std::cerr << "\033[31m#31 Too much rotation: phi = " << phi << "\033[0m" << std::endl;
 		integration_error = true;
 		return;
 	}
@@ -720,4 +755,5 @@ AttitudeIntegrator::~AttitudeIntegrator()
 {
 	if (!Astrometry::no_ephemeris)
 		kclear_c();
+	Astrometry::no_ephemeris = true;
 }

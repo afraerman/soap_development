@@ -12,6 +12,36 @@ Time::Time()
 
 Time::Time(const std::string& t)
 {
+	const std::regex pattern(
+		R"(^(\d{4}).*?(\d{2}).*?(\d{2}).*?(\d{2}).*?(\d{2}).*?(\d{2}).*?$)");
+
+	std::smatch match;
+	if (!std::regex_match(t, match, pattern))
+	{
+		throw std::runtime_error("Time doesn't match format YYYY-MM-DDTHH:MM:SS.S");
+	}
+
+	year    = std::stoi(match[1]);
+	month   = std::stoi(match[2]);
+	day     = std::stoi(match[3]);
+	hours   = std::stoi(match[4]);
+	minutes = std::stoi(match[5]);
+	int int_seconds = std::stoi(match[6]);
+
+	if (month < 1 || month > 12) throw std::runtime_error("Month can't be "+std::to_string(month));
+	if (hours < 0 || hours > 23) throw std::runtime_error("Hours can't be "+std::to_string(hours));
+	if (minutes < 0 || minutes > 59) throw std::runtime_error("Minutes can't be "+std::to_string(minutes));
+	if (int_seconds < 0 || int_seconds > 59) throw std::runtime_error("Seconds can't be "+std::to_string(int_seconds));
+
+	const int days_in_month[] = {0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+	int max_day = days_in_month[month];
+	if (month == 2)
+	{
+		bool leap = (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
+		if (leap) max_day = 29;
+	}
+	if (day < 1 || day > max_day) throw std::runtime_error("Day can't be "+std::to_string(day)+" in month "+std::to_string(month));
+
 	std::stringstream ss_str;
 	char tmp;
 	ss_str << t;

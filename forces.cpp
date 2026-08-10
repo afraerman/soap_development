@@ -42,11 +42,11 @@ void Forces::setSolarPressureCalculated(const bool flag)
 
 int Forces::getGravityCoefficients()
 {
-	std::cout << "I'm about to collect gravity coefficients" << std::endl;
+	std::cout << "\033[32mI'm about to collect gravity coefficients\033[0m" << std::endl;
 
 	if (egmfilename.length() == 0)
 	{
-		std::cout << "No egmfilename given" << std::endl;
+		std::cerr << "\033[31m#042 No egmfilename given in the input file\033[0m" << std::endl;
 		return 1;
 	}
 
@@ -74,7 +74,7 @@ int Forces::getGravityCoefficients()
 	std::ifstream egm(egmfilename);
 	if (!(egm.is_open()))
 	{
-		std::cout << "No such EGM file " << egmfilename << std::endl;
+		std::cerr << "\033[31m#041 No such EGM file " << egmfilename << "\033[0m" << std::endl;
 		return 1;
 	}
 	
@@ -155,6 +155,7 @@ void Forces::earthGravityForce(const PositionVector& pos, const Time& time)
 		int responce = getGravityCoefficients();
 		if (responce)
 		{
+			std::exit(EXIT_FAILURE);
 			return;
 		}
 		no_coefficients = false;
@@ -323,7 +324,8 @@ void Forces::solarPressureForce(Satellite& sat, const Time& time)
 
 	if (sat.getPolygons().size() == 0)
 	{
-		std::cout << "No polygons given, skipping solar pressure force" << std::endl;
+		std::cerr << "\033[31m#22 No polygons given, unable to calculate solar pressure force\033[0m" << std::endl;
+		std::exit(EXIT_FAILURE);
 		return;
 	}
 
@@ -386,7 +388,6 @@ void Forces::solarPressureForce(Satellite& sat, const Time& time)
 	state = NULL;
 }
 
-/*
 void Forces::srpForce(Satellite& sat, const Time& time)
 {
 	if (solar_pressure_calculated)
@@ -402,7 +403,6 @@ void Forces::srpForce(Satellite& sat, const Time& time)
 	PositionVector s;
 	SRPResult res;
 
-	center_of_pressure = PositionVector({0.0, 0.0, 0.0});
 	double forces_summ = 0.0;
 
 	SpiceDouble et = time.ET();
@@ -442,7 +442,6 @@ void Forces::srpForce(Satellite& sat, const Time& time)
 	Forces::setSolarPressureCalculated(true);
 	Forces::setSolarPressureForce(PositionVector({res.total_force[0], res.total_force[1], res.total_force[2]}) * ef);
 }
-*/
 
 void Forces::solarPressureGmat(Satellite& sat, const Time& time)
 {
@@ -492,9 +491,8 @@ PositionVector Forces::allForces(Satellite& sat, const Time& time)
 	if (account_for_outer_gravity) outerBodiesGravityForce(sat.getPosition(), time);
 	if (account_for_solar_pressure)
 	{
-		//if (sat.getHdfFile() != "") srpForce(sat, time);
-		//else solarPressureForce(sat, time);
-		solarPressureForce(sat, time);
+		if (sat.getHdfFile() != "") srpForce(sat, time);
+		else solarPressureForce(sat, time);
 	}
 	if (account_for_solar_pressure_gmat) solarPressureGmat(sat, time);
 	

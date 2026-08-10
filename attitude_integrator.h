@@ -75,6 +75,15 @@ private:
 	/// @return true if current time is slew-time else false
 	bool slew_time(const Satellite& sat, const Time& time) const;
 
+
+	/// @brief Acquire new target
+	/// @param sat Satellite
+	/// @param time current date-time
+	/// @param step integration step
+	/// @param torque vector of applied torques
+	/// @return 0 if target acquired successful, 1 if target failed (impossible)
+	int acquire_target(Satellite& sat, Time& time, const double step, const PositionVector& torque);
+
 protected:
 	/// @brief Integration method of variational integrator described in the article.
 	///

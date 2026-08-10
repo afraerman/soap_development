@@ -29,6 +29,16 @@ PositionVector::PositionVector(const std::vector<double>& v)
 }
 
 /**
+ * Constructor
+ * 
+ * @param int dim Dimention of this zero-vector
+ */
+PositionVector::PositionVector(const int dim)
+{
+	values = std::vector<double>(dim, 0.0);
+}
+
+/**
  * Dot-product of PositionVectors
  * 
  * @param v PositionVector to have a dot-product with
@@ -288,6 +298,11 @@ PositionVector operator*(const double x, const PositionVector& p)
 
 std::ostream& operator<<(std::ostream& os, const PositionVector& v)
 {
+	if (v.values.empty())
+	{
+		return os;
+	}
+	
 	for (int i = 0; i < (int)v.values.size() - 1; i++)
 	{
 		os << v.values[i] << '\t';

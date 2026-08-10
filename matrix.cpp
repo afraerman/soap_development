@@ -76,21 +76,27 @@ Matrix Matrix::inverse() const
 {
 	if (number_of_columns != number_of_rows)
 	{
-		std::cout << "Can't inverse non-square matrix" << std::endl;
+		std::cerr << "\033[31m#251 Can't inverse non-square matrix: \033[0m" << std::endl;
+		std::cerr << *this << std::endl;
+		std::exit(EXIT_FAILURE);
 		return *this;
 	}
 	for (int i = 0; i < number_of_rows; i++)
 	{
 		if (values[i][i] == 0.0)
 		{
-			std::cout << "Can't inverse matrix with 0 on the diagonal" << std::endl;
+			std::cerr << "\033[31m#252 Can't inverse matrix with 0 on the diagonal\033[0m" << std::endl;
+			std::cerr << *this << std::endl;
+			std::exit(EXIT_FAILURE);
 			return *this;
 		}
 		for (int j = 0; j < number_of_columns; j++)
 		{
 			if ((i != j) and values[i][j] != 0.0)
 			{
-				std::cout << "Can't inverse non-square matrix" << std::endl;
+				std::cerr << "\033[31m#251 Can't inverse non-square matrix\033[0m" << std::endl;
+				std::cerr << *this << std::endl;
+				std::exit(EXIT_FAILURE);
 				return *this;
 			}
 		}
@@ -105,16 +111,16 @@ Matrix Matrix::transpose() const
 {
 	int rows = number_of_rows;
 	int columns = number_of_columns;
-	std::vector<std::vector<double>> m(rows, std::vector<double>(columns));
+	std::vector<std::vector<double>> m(columns, std::vector<double>(rows));
 
-	for (int i = 0; i < rows; i++)
+	for (int i = 0; i < columns; i++)
 	{
-		for (int j = 0; j < columns; j++)
+		for (int j = 0; j < rows; j++)
 		{
 			m[i][j] = values[j][i];
 		}
 	}
-	return Matrix(rows, columns, m);
+	return Matrix(columns, rows, m);
 }
 
 void Matrix::LUdecompose()

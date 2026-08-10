@@ -70,6 +70,20 @@ void Integrator::make_ephemeris_header(std::ofstream& os)
 	os << "\tglobal_attibutes:"  << std::endl;
 	os << "\t\tacknowledgement: this ephemeris file was created using SOAP software of ASC LPI RSSI" << std::endl;
 
+	os << "\t\tsoftware:" << std::endl;
+	os << "\t\t\tname: SOAP (Spacecraft Orbit and Attitude Prediction)" << std::endl;
+	os << "\t\t\tversion: " << std::endl;
+	os << "\t\t\tcommit: " << std::endl;
+	os << "\t\t\tinstitution: Лаборатория баллистико-навигационного обеспечения космических проектов, Астрокосмический центр ФИАН" << std::endl;
+	os << "\t\t\tauthors:" << std::endl;
+	os << "\t\t\t\t- Фраерман А.В. — разаботчик" << std::endl;
+	os << "\t\t\t\t- Запевалин П.Р. — научный руководитель" << std::endl;
+	os << "\t\t\treferences:" << std::endl;
+	os << "\t\t\t\t- <статья, где описан комплекс или его модели>" << std::endl;
+	os << "\t\t\t\t- <работа, где SOAP использован для расчётов>" << std::endl;
+	os << "\t\t\tcontact: fraerman@asc.rssi.ru" << std::endl;
+	os << "\t\t\tlicense: <лицензия>" << std::endl;
+
 	os << "\tvariables:" << std::endl;
 	os << "\t\t- timestamp:" << std::endl;
 	os << "\t\t\tcomment: 1st column" << std::endl;
@@ -122,7 +136,7 @@ void Integrator::make_ephemeris_header(std::ofstream& os)
 	os << "\t\t\tcomment: 11th column\n";
 	os << "\t\t\tdescription: k-component of rotation quaternion\n";
 
-	os << "#End of YAML header\n";
+	os << "#End of header\n";
 }
 
 void Integrator::make_telemetry_header(std::ofstream& os)
@@ -277,7 +291,7 @@ void Integrator::make_telemetry_header(std::ofstream& os)
 		column++;
 	}
 
-	os << "#End of YAML header\n";
+	os << "#End of header\n";
 }
 
 void Integrator::integrate(std::string savefilename)
@@ -291,7 +305,9 @@ void Integrator::integrate(std::string savefilename)
 	std::ofstream telemetry(FILENAMES::telemetry_filename);
 	if (!telemetry.is_open())
 	{
-		std::cout << "Can't create a telemetry file with such path: " << FILENAMES::telemetry_filename << std::endl;
+		std::cerr << "\033[31m#013 Can't create a telemetry file with such path: " << FILENAMES::telemetry_filename << "\033[0m" << std::endl;
+		std::exit(EXIT_FAILURE);
+		return;
 	}
 	make_telemetry_header(telemetry);
 	
@@ -300,7 +316,8 @@ void Integrator::integrate(std::string savefilename)
 	std::ofstream output(savefilename);
 	if (!output.is_open())
 	{
-		std::cout << "Can't create an output file with such path: " << savefilename << std::endl;
+		std::cerr << "\033[31m#012 Can't create an output file with such path: " << savefilename << "\033[0m" << std::endl;
+		std::exit(EXIT_FAILURE);
 		return;
 	}
 	make_ephemeris_header(output);
@@ -418,7 +435,7 @@ void Integrator::integrate(std::string savefilename)
 			// std::cout <<  "Current step: " << h << std::endl;
 
 			// Это теперь наш шаг, который мы хотим шагнуть, он точно является долей output_step, поэтому опасности "перешагнуть" точку вывода нет
-			exponent = 0;
+			exponent = 0.0;
 
 			// OUTPUT
 			if ((elapsed_time == output_time) || (elapsed_time == interval))
@@ -521,6 +538,12 @@ void Integrator::integrate(std::string savefilename)
 	telemetry.close();
 
 	std::ofstream outputinfo(FILENAMES::output_info_filename);
+	if (!outputinfo.is_open())
+	{
+		std::cerr << "\033[31m#014 Can't create an outputinfo file with filename " << FILENAMES::output_info_filename << "\033[0m\n";
+		std::exit(EXIT_FAILURE);
+		return;
+	}
 	std::setprecision(17);
 	//outputinfo << "START_TIME" << '\t' << "MODE" << '\t' << "FLAG" << '\t' << "DURATION" << '\t' << "MOMENTUM" << '\t' << "FUEL" << std::endl;
 	//outputinfo << std::format("{:<21}    {:<4}    {:<4}    {:<17}    {:<53}    {:<17}\n", "START_TIME", "MODE", "FLAG", "DURATION", "MOMENTUM", "FUEL");

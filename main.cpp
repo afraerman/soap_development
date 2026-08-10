@@ -35,7 +35,7 @@ void quickstart()
 	
 	if (Input::read_json_file(input_filename, sat, time, interval, step, output_step))
 	{
-		std::cout << "Smth went wrong while reading file " << input_filename << std::endl;
+		//std::cerr << "\033[31m#O_INPUT Smth went wrong while reading file " << input_filename << "\033[0m" << std::endl;
 		return;
 	}
 

@@ -1248,7 +1248,6 @@ void Test::checkNan()
 	Forces::check2000nan();
 }
 
-/*
 void Test::srplibTest()
 {
 	SRPEngine engine("/media/alexey/Disk1/asc/solar_pressure/srp_test_prjct/data_hdf");        // scans folder for .h5 files
@@ -1271,4 +1270,3 @@ void Test::srplibTest()
     engine.computeViz(SRPMethod::CentroidCPU);
     engine.visualizeLastResult();
 }
-*/

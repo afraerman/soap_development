@@ -1,6 +1,6 @@
 #include "stdafx.h"
 
-std::string Astrometry::eopfilename = "../Files/eop_new.txt";
+std::string Astrometry::eopfilename = "../Files/eop.txt";
 std::string Astrometry::tlsfilename = "../Files/naif0012.tls";
 std::string Astrometry::ephfilename = "../Files/de440.bsp";
 std::string Astrometry::gmfilename = "../Files/gm_de440.tpc";
@@ -37,15 +37,42 @@ void Astrometry::get_ephemeris()
 {
 	// Leap-seconds
 	ConstSpiceChar* tls = tlsfilename.c_str();
-	furnsh_c(tls);
+	try
+	{
+		furnsh_c(tls);
+	}
+	catch (...)
+	{
+		std::cerr << "\033[31m#09 Can't open TLS file " << tlsfilename << "\033[0m\n";
+		std::exit(EXIT_FAILURE);
+		return;
+	}
 
 	// Ephemeris
 	ConstSpiceChar* eph = ephfilename.c_str();
-	furnsh_c(eph);
+	try
+	{
+		furnsh_c(eph);
+	}
+	catch (...)
+	{
+		std::cerr << "\033[31m#010 Can't open ephemeris file " << ephfilename << "\033[0m\n";
+		std::exit(EXIT_FAILURE);
+		return;
+	}
 
 	// Gravitation parameters (GM)
 	ConstSpiceChar* gm = gmfilename.c_str();
-	furnsh_c(gm);
+	try
+	{
+		furnsh_c(gm);
+	}
+	catch (...)
+	{
+		std::cerr << "\033[31m#011 Can't open gm file " << gmfilename << "\033[0m\n";
+		std::exit(EXIT_FAILURE);
+		return;
+	}
 }
 
 double Astrometry::eclipse_factor(const PositionVector& sun_pos, const PositionVector& sat_pos)
@@ -136,6 +163,16 @@ void Astrometry::EOP(const Time& time)
 			if (stop_sign == order) break;
 		}
 		eop.close();
+
+		if (not found)
+		{
+			std::cerr << "\033[33m#9 No EOP data for given date-time, using last " << order << " values for interpolation" << "\033[0m" << std::endl;
+		}
+	}
+	else
+	{
+		std::cerr << "\033[31m#03 Can't open EOP file with filename: " << eopfilename << "\033[0m" << std::endl;
+		std::exit(EXIT_FAILURE);
 	}
 }
 

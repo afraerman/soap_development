@@ -5,6 +5,66 @@ inline constexpr std::uint32_t fnv1a(const char* str, std::uint32_t hash = 21661
 	return *str ? fnv1a(str + 1, (hash ^ *str) * 16777619ULL) : hash;
 }
 
+void Input::require_array_of_doubles(const Json::Value& node, const std::string& path, size_t expected_size)
+{
+	if (!node.isArray())
+	{
+		throw std::runtime_error(path + " must be a JSON array");
+	}
+	if (node.size() != expected_size)
+	{
+		throw std::runtime_error(path + " must contain exactly " + std::to_string(expected_size) + " elements");
+	}
+
+	for (Json::ArrayIndex i = 0; i < expected_size; i++)
+	{
+		if (node[i].isNull())
+		{
+			throw std::runtime_error(path + "[" + std::to_string(i) + "] is null");
+		}
+		if (!node[i].isNumeric())
+		{
+			throw std::runtime_error(path + "[" + std::to_string(i) + "] is not a number");
+		}
+	}
+}
+
+std::vector<double> Input::get_doubles(const Json::Value& node, const std::string& path, size_t expected_size)
+{
+	require_array_of_doubles(node, path, expected_size);
+	std::vector<double> result;
+	result.reserve(expected_size);
+	for (Json::ArrayIndex i = 0; i < expected_size; i++)
+	{
+		result.push_back(node[i].asDouble());
+	}
+	return result;
+}
+
+std::vector<Json::Value> Input::get_parameters(const Json::Value& node, const std::string& path, size_t expected_size)
+{
+	if (!node.isArray())
+	{
+		throw std::runtime_error(path + " must be a JSON array");
+	}
+	if (node.size() != expected_size)
+	{
+		throw std::runtime_error(path + " must contain exactly " + std::to_string(expected_size) + " elements");
+	}
+	for (Json::ArrayIndex i = 0; i < expected_size; i++)
+	{
+		if (node[i].isNull()) throw std::runtime_error(path + "[" + std::to_string(i) + "] is null");
+	}
+
+	std::vector<Json::Value> parameters;
+	parameters.reserve(expected_size);
+	for (Json::ArrayIndex i = 0; i < expected_size; i++)
+	{
+		parameters.push_back(node[i]);
+	}
+	return parameters;
+}
+
 int Input::read_multiple_satellites_filenames(const std::string& filename, std::vector<std::string>& filenames)
 {
 	std::ifstream input(filename);
@@ -44,7 +104,7 @@ int Input::read_input_file(const std::string& filename, Satellite* sat, Time* ti
 
 	if (!(input.is_open()))
 	{
-		std::cout << "No such input file or directory" << std::endl;
+		std::cerr << "\033[31m#01 No such input file or directory: " << filename << "\033[0m" << std::endl;
 		return 1;
 	}
 
@@ -177,7 +237,7 @@ int Input::read_input_file(const std::string& filename, Satellite* sat, Time* ti
 			std::vector<Polygon> polygons;
 			if (read_vtk_file(vtk_filename, polygons))
 			{
-				std::cout << "Smth went wrong while reading vtk file. Polygons not included" << std::endl;
+				std::cerr << "\033[31mSmth went wrong while reading vtk file. Polygons not included\033[0m" << std::endl;
 			}
 			else
 			{
@@ -285,7 +345,7 @@ int Input::read_input_file(const std::string& filename, Satellite* sat, Time* ti
 			ss_value >> n;
 			if (n != 4)
 			{
-				std::cout << "There must be exeactly 4 reaction wheels in one block" << std::endl;
+				std::cerr << "\033[31mThere must be exeactly 4 reaction wheels in one block\033[0m" << std::endl;
 				return 1;
 			}
 
@@ -756,7 +816,7 @@ int Input::read_input_file(const std::string& filename, Satellite* sat, Time* ti
 
 		default:
 		{
-			std::cout << "Unknown parameter: " << name << std::endl;
+			std::cerr << "\033[31mUnknown parameter: " << name << "\033[0m" << std::endl;
 			return 1;
 		}
 		
@@ -768,10 +828,10 @@ int Input::read_input_file(const std::string& filename, Satellite* sat, Time* ti
 	}
 	input.close();
 
-	if (state_not_given) { std::cout << "State not given" << std::endl; return 1; }
-	if (time_not_given) { std::cout << "Initial time not given" << std::endl; return 1; }
-	if (interval_not_given) { std::cout << "Interval not given" << std::endl; return 1; }
-	if (step_not_given) { std::cout << "Step not given" << std::endl; return 1; }
+	if (state_not_given) { std::cerr << "\033[31mState not given\033[0m" << std::endl; return 1; }
+	if (time_not_given) { std::cerr << "\033[31mInitial time not given\033[0m" << std::endl; return 1; }
+	if (interval_not_given) { std::cerr << "\033[31mInterval not given\033[0m" << std::endl; return 1; }
+	if (step_not_given) { std::cerr << "\033[31mStep not given\033[0m" << std::endl; return 1; }
 	return 0;
 }
 	
@@ -781,7 +841,7 @@ int Input::read_vtk_file(const std::string& filename, std::vector<Polygon>& poly
 
 	std::ifstream file(filename);
     if (!file.is_open()) {
-        std::cerr << "Unable to open file " << filename << std::endl;
+        std::cerr << "\033[31m#02 Unable to open file " << filename << "\033[0m" << std::endl;
         return 1;
     }
 
@@ -900,7 +960,7 @@ int Input::read_vtk_file(const std::string& filename, std::vector<Polygon>& poly
 
     file.close();
 
-    std::cout << "Done reading vtk file" << std::endl;
+    std::cout << "\033[32mDone reading vtk file\033[0m" << std::endl;
 
 	return 0;
 }
@@ -910,114 +970,253 @@ int Input::read_json_file(const std::string& filename, Satellite* sat, Time* tim
 	std::ifstream data_file(filename, std::ifstream::binary);
 	if (!data_file.is_open())
 	{
-		std::cout << "No json file found" << std::endl;
+		std::cerr << "\033[31m#01 No json file found with name: " << filename << "\033[0m" << std::endl;
 		return 1;
 	}
-	std::cout << "Json file is opened" << std::endl;
+	std::cout << "\033[32mJson file is opened\033[0m" << std::endl;
 	Json::Value data;
-	data_file >> data;
+	try {
+		data_file >> data;
+	}
+	catch (const std::exception& e)
+	{
+		std::cerr << "\033[31m#01 Error while reading JSON file:\033[0m" << std::endl;
+		std::cerr << e.what() << std::endl;
+		return 1;
+	}
 
 	/* ---------------------------------- SIMULATION ------------------------------------*/
-	if (data["simulation"]["interval"])
-		interval = data["simulation"]["interval"].asDouble();
+	auto simulation = data["simulation"];
+
+	if (simulation.isMember("interval") && !simulation["interval"].isNull())
+	{
+		try
+		{
+			interval = simulation["interval"].asDouble();
+			if (interval < 0.0) throw;
+			parameters_dict["Simulation"]["interval"] = true;
+		}
+		catch (...)
+		{
+			std::cerr << "\033[31m#1111_interval Invalid value of interval " << simulation["interval"] << "\033[0m" << std::endl;
+			return 1;
+		}
+	}
 	else
 	{
-		std::cout << "Interval not given" << std::endl;
+		std::cerr << "\033[31m#1110_interval Interval not given\033[0m" << std::endl;
 		return 1;
 	}
 
-	if (data["simulation"]["step"])
+	if (simulation.isMember("step") && !simulation["step"].isNull())
 	{
-		step = data["simulation"]["step"].asDouble();
-		ost = step;
+		try
+		{
+			step = simulation["step"].asDouble();
+			if (step < 0.0) throw;
+			ost = step;
+			parameters_dict["Simulation"]["step"] = true;
+		}
+		catch (...)
+		{
+			std::cerr << "\033[31m#1151_step Invalid value of step " << simulation["step"] << "\033[0m\n";
+			return 1;
+		}
 	}
 	else
 	{
-		std::cout << "Step not given" << std::endl;
+		std::cerr << "\033[31m#1150_step Step not given\033[0m" << std::endl;
 		return 1;
 	}
 
-	if (data["simulation"]["start_time"])
-		time->setTime(Time(data["simulation"]["start_time"].asString()));
+	if (simulation.isMember("start_time") && !simulation["start_time"].isNull())
+	{
+		try
+		{
+			time->setTime(Time(simulation["start_time"].asString()));
+			parameters_dict["Simulation"]["start_time"] = true;
+		}
+		catch (const std::exception& e)
+		{
+			std::cerr << "\033[31m#1141_start_time " << e.what() << "\033[0m\n";
+			return 1;
+		}
+	}
 	else
 	{
-		std::cout << "Start time not given" << std::endl;
+		std::cerr << "\033[31m#1140_start_time Start time not given\033[0m" << std::endl;
 		return 1;
 	}
 
-	if (data["simulation"]["output_step"])
-		ost = data["simulation"]["output_step"].asDouble();
-
-	if (data["simulation"]["orbit_file"])
+	if (simulation.isMember("output_step") && !simulation["output_step"].isNull())
 	{
-		std::string orbit_filename = data["simulation"]["orbit_file"].asString();
-		sat->setOrbitFilename(orbit_filename);
+		try
+		{
+			ost = simulation["output_step"].asDouble();
+			parameters_dict["Simulation"]["output_step"] = true;
+		}
+		catch(...)
+		{
+			std::cerr << "\033[31m#1131_output_step Invalid value of output step " << simulation["output_step"] << "\033[0m\n";
+			return 1;
+		}
+	}
+	if (simulation.isMember("orbit_file") && !simulation["orbit_file"].isNull())
+	{
+		try
+		{
+			std::string orbit_filename = simulation["orbit_file"].asString();
+			sat->setOrbitFilename(orbit_filename);
+			parameters_dict["Simulation"]["orbit_file"] = true;
+		}
+		catch (...)
+		{
+			std::cerr << "\033[31m#1121_orbit_file Invalid value of orbit filename " << simulation["orbit_file"] << "\033[0m\n";
+			return 1;
+		}
 	}
 
 	/* ---------------------------------- SPACECRAFT --------------------------------------*/
 	auto spacecraft = data["spacecraft"];
 
-	if (spacecraft["state_vector"])
+	if (spacecraft.isMember("state_vector") && !spacecraft["state_vector"].isNull())
 	{
-		auto st = data["spacecraft"]["state_vector"];
-		sat->setState(StateVector(std::vector<double>{st[0].asDouble(), st[1].asDouble(), st[2].asDouble(),
-			st[3].asDouble(), st[4].asDouble(), st[5].asDouble()}));
+		try 
+		{
+			auto st = get_doubles(spacecraft["state_vector"], "spacecraft.state_vector", 6);
+
+			sat->setState(StateVector(st));
+			parameters_dict["Spacecraft"]["state_vector"] = true;
+		}
+		catch (const std::exception& e)
+		{
+			std::cerr << "\033[31m#1251_state_vector " << e.what() << "\033[0m" << std::endl;
+			return 1;
+		}
 	}
 	else if (!(data["simulation"]["orbit_file"]))
 	{
-		std::cout << "State not given" << std::endl;
+		std::cerr << "\033[31m#1250_state_vector State not given\033[0m" << std::endl;
 		return 1;
 	}
 
-	if (spacecraft["quaternion"])
+	if (spacecraft.isMember("quaternion") && !spacecraft["quaternion"].isNull())
 	{
-		auto q = spacecraft["quaternion"];
+		try 
+		{
+			auto q = get_doubles(spacecraft["quaternion"], "spacecraft.quaternion", 4);
+			Quaternion quat(q[0], q[1], q[2], q[3]);
+			sat->setQuaternion(quat);
+			parameters_dict["Spacecraft"]["quaternion"] = true;
+		}
+		catch (const std::exception& e)
+		{
+			std::cerr << "\033[31m#1241_quaternion " << e.what() << "\033[0m\n";
+			return 1;
+		}
 		//boost::math::quaternion<double> quat {q[0].asDouble(), q[1].asDouble(), q[2].asDouble(), q[3].asDouble()};
-		Quaternion quat(q[0].asDouble(), q[1].asDouble(), q[2].asDouble(), q[3].asDouble());
-		sat->setQuaternion(quat);
-	}
-
-	if (spacecraft["inertia_tensor"])
-	{
-		auto it = spacecraft["inertia_tensor"];
-		sat->setInertiaTensor(Matrix(3, 3, std::vector<std::vector<double>>{
-			{it[0].asDouble(), 0.0, 0.0},
-			{0.0, it[1].asDouble(), 0.0},
-			{0.0, 0.0, it[2].asDouble()}
-		}));
-	}
-
-	if (spacecraft["angular_velocity"])
-	{
-		auto av = spacecraft["angular_velocity"];
-		sat->setAngularVelocity(std::vector<double>{av[0].asDouble(), av[1].asDouble(), av[2].asDouble()});
-	}
-
-	if (spacecraft["mass"])
-	{
-		sat->setMass(spacecraft["mass"].asDouble());
 	}
 	else
 	{
-		std::cout << "Mass not given" << std::endl;
+		std::cerr << "\033[31m#1240_quaternion Quaternion not given\033[0m" << std::endl;
+		return 1;
+	}
+
+	if (spacecraft.isMember("inertia_tensor") && !spacecraft["inertia_tensor"].isNull())
+	{
+		try
+		{
+			auto it = get_doubles(spacecraft["inertia_tensor"], "spacecraft.inertia_tensor", 3);
+			sat->setInertiaTensor(Matrix(3, 3, std::vector<std::vector<double>>{
+				{it[0], 0.0, 0.0},
+				{0.0, it[1], 0.0},
+				{0.0, 0.0, it[2]}
+				}));
+			parameters_dict["Spacecraft"]["inertia_tensor"] = true;
+		}
+		catch (const std::exception& e)
+		{
+			std::cerr << "\033[31m#1221_inertia_tensor " << e.what() << "\033[0m\n";
+			return 1;
+		}
+	}
+	else
+	{
+		std::cerr << "\033[31m#1220_inertia_tensor Inertia tensor not given\033[0m\n";
+		return 1;
+	}
+
+	if (spacecraft.isMember("angular_velocity") && !spacecraft["angular_velocity"].isNull())
+	{
+		try
+		{
+			auto av = get_doubles(spacecraft["angular_velocity"], "spacecraft.angular_velocity", 3);
+			sat->setAngularVelocity(av);
+			parameters_dict["Spacecraft"]["angular_velocity"] = true;
+		}
+		catch (const std::exception& e)
+		{
+			std::cerr << "\033[31m#1211_angular_velocity " << e.what() << "\033[0m\n";
+			return 1;
+		}
+	}
+
+	if (spacecraft.isMember("mass") && !spacecraft["mass"].isNull())
+	{
+		try
+		{
+			sat->setMass(spacecraft["mass"].asDouble());
+			if (spacecraft["mass"].asDouble() < 0.0) throw;
+			parameters_dict["Spacecraft"]["mass"] = true;
+		}
+		catch(...)
+		{
+			std::cerr << "\033[31m#1231_mass Invalid value of mass " << spacecraft["mass"] << "\033[0m\n";
+			return 1;
+		}
+	}
+	else
+	{
+		std::cerr << "\033[31m#1230_mass Mass not given\033[0m" << std::endl;
 		return 1;
 	}
 
 	/* --------------------------------- GEOMETRY (SURFACE) -------------------------------*/
 	auto geometry = data["geometry"];
 
-	if (geometry["vtk_file"])
+	if (geometry.isMember("vtk_file") && !geometry["vkt_file"].isNull())
 	{
-		std::string koeffs_filename = "";
+		parameters_dict["Geometry"]["vtk_file"] = true;
+
+		std::string coeffs_filename = "";
+		std::string vtk_filename = "";
 		std::vector<Polygon> polygons;
-		std::string vtk_filename = geometry["vtk_file"].asString();
-		if (geometry["vtk_koeffs"])
+		try
 		{
-			koeffs_filename = geometry["vtk_koeffs"].asString();
+			vtk_filename = geometry["vtk_file"].asString();
 		}
-		if (read_vtk_file(vtk_filename, polygons, koeffs_filename))
+		catch (...)
 		{
-			std::cout << "Smth went wrong while reading vtk file. Polygons not included" << std::endl;
+			std::cerr << "\033[31m#1341_vkt_file Invalid vtk_filename " << geometry["vtk_file"] << "\033[0m\n";
+			return 1;
+		}
+		
+		if (geometry.isMember("vtk_coeffs") && !geometry["vtk_coeffs"].isNull())
+		{
+			try
+			{
+				coeffs_filename = geometry["vtk_coeffs"].asString();
+			}
+			catch (...)
+			{
+				std::cerr << "\033[31m#1351_vtk_coeffs Invalid coefficients filename " << geometry["vtk_coeffs"] << "\033[0m\n";
+				return 1;
+			}
+		}
+		if (read_vtk_file(vtk_filename, polygons, coeffs_filename))
+		{
+			std::cerr << "\033[33mSmth went wrong while reading vtk file. Polygons not included\033[0m" << std::endl;
+			return 1;
 		}
 		else
 		{
@@ -1025,327 +1224,984 @@ int Input::read_json_file(const std::string& filename, Satellite* sat, Time* tim
 		}
 	}
 
-	if (geometry["hdf5_file"])
+	if (geometry.isMember("hdf5_file") && !geometry["hdf5_file"].isNull())
 	{
-		std::string hdf5_filename = geometry["hdf5_file"].asString();
-		sat->setHdfFile(hdf5_filename);
-	}
-
-	if (geometry["polygons"])
-	{
-		int count = geometry["polygons"]["count"].asInt();
-		std::vector<Polygon> polygons(count);
-		auto polys = geometry["polygons"]["parameters"];
-		for (int i = 0; i < count; i++)
-		{
-			polygons[i] = Polygon(
-				PositionVector({polys[i]["position"][0].asDouble(), polys[i]["position"][1].asDouble(), polys[i]["position"][2].asDouble()}),
-				PositionVector({polys[i]["normal"][0].asDouble(), polys[i]["normal"][1].asDouble(), polys[i]["normal"][2].asDouble()}),
-				polys[i]["area"].asDouble(),
-				polys[i]["albedo"].asDouble(),
-				polys[i]["specularity"].asDouble()
-				);
+		try {
+			std::string hdf5_filename = geometry["hdf5_file"].asString();
+			sat->setHdfFile(hdf5_filename);
+			parameters_dict["Geometry"]["hdf5_file"] = true;
 		}
-		sat->setPolygons(polygons);
+		catch (...)
+		{
+			std::cerr << "\033[31m#1311_hdf5_file Invalid hdf5 filename " << geometry["hdf5_file"] << "\033[0m\n";
+			return 1;
+		}
 	}
 
-	if (geometry["solar_panels"])
+	if (geometry.isMember("polygons") && !geometry["polygons"].isNull())
 	{
-		int count = geometry["solar_panels"]["count"].asInt();
-		std::vector<Polygon> solar_panels(count);
-		auto polys = geometry["solar_panels"]["parameters"];
-		for (int i = 0; i < count; i++)
+		int count;
+		if (geometry["polygons"].isMember("count") && !geometry["polygons"]["count"].isNull())
 		{
-			solar_panels[i] = Polygon(
-				PositionVector({polys[i]["position"][0].asDouble(), polys[i]["position"][1].asDouble(), polys[i]["position"][2].asDouble()}),
-				PositionVector({polys[i]["normal"][0].asDouble(), polys[i]["normal"][1].asDouble(), polys[i]["normal"][2].asDouble()}),
-				polys[i]["area"].asDouble(),
-				polys[i]["albedo"].asDouble(),
-				polys[i]["specularity"].asDouble(),
-				polys[i]["rai"].asDouble()
-				);
+			try
+			{
+				count = geometry["polygons"]["count"].asInt();
+			}
+			catch (...)
+			{
+				std::cerr << "\033[31m#1321_polygons.count Invalid value of polygons count " << geometry["polygons"]["count"] << "\033[0m\n";
+				return 1;
+			}
+			std::vector<Polygon> polygons(count);
+			try
+			{
+				auto polys = get_parameters(geometry["polygons"]["parameters"], "geometry.polygons.parameters", count);
+				for (int i = 0; i < count; i++)
+				{
+					try
+					{
+						auto position = get_doubles(polys[i]["position"], "geometry.polygons.parameters.position", 3);
+						auto normal = get_doubles(polys[i]["normal"], "geometry.polygons.parameters.normal", 3);
+						double area = polys[i]["area"].asDouble();
+						double albedo = polys[i]["reflectivity"].asDouble();
+						double specularity = polys[i]["specularity"].asDouble();
+						polygons[i] = Polygon(
+							position,
+							normal,
+							area,
+							albedo,
+							specularity
+							);
+					}
+					catch (const std::exception& e)
+					{
+						std::cerr << "\033[31m#1321_polygons[" + std::to_string(i) + "] " << e.what() << "\033[0m\n";
+						return 1;
+					}
+				}
+				sat->setPolygons(polygons);
+				parameters_dict["Geometry"]["polygons"] = true;
+			}
+			catch (const std::exception& e)
+			{
+				std::cerr << "\033[31m#1321_polygons.parameters " << e.what() << "\033[0m\n";
+				return 1;
+			}
+		}
+		else
+		{ 
+			std::cerr << "\033[31m#1320_polygons.count Count not given\033[0m\n";
+			return 1;
+		}
+	}
+
+	if (geometry.isMember("solar_panels") && !geometry["solar_panels"].isNull())
+	{
+		int count;
+		if (geometry["solar_panels"].isMember("count") && !geometry["solar_panels"]["count"].isNull())
+		{
+		try
+		{
+				count = geometry["solar_panels"]["count"].asInt();
+			}
+			catch (...)
+			{
+				std::cerr << "\033[31m#1331_solar_panels.count Invalid value of solar_panels.count " << geometry["solar_panels"]["count"] << "\033[0m\n";
+				return 1;
+			}
+			std::vector<Polygon> solar_panels(count);
+			
+			try
+			{
+				auto polys = get_parameters(geometry["solar_panels"]["parameters"], "geometry.solar_panels.parameters", count);
+				for (int i = 0; i < count; i++)
+				{
+					try
+					{
+						auto position = get_doubles(polys[i]["position"], "geometry.solar_panels.parameters.position", 3);
+						auto normal = get_doubles(polys[i]["normal"], "geometry.solar_panels.parameters.normal", 3);
+						double area = polys[i]["area"].asDouble();
+						double albedo = polys[i]["reflectivity"].asDouble();
+						double specularity = polys[i]["specularity"].asDouble();
+						int rai = polys[i]["rai"].asInt();
+						solar_panels[i] = Polygon(
+							position,
+							normal,
+							area,
+							albedo,
+							specularity,
+							rai
+							);
+					}
+					catch (const std::exception& e)
+					{
+						std::cerr << "\033[31m#1331_solar_panel[" + std::to_string(i) + "] " << e.what() << "\033[0m\n";
+						return 1;
+					}
+				}
+				parameters_dict["Geometry"]["solar_panels"] = true;
+			}
+			catch (const std::exception& e)
+			{
+				std::cerr << "\033[31m#1331_solar_panels.parameters " << e.what() << "\033[0m\n";
+				return 1;
+			}
+		}
+		else
+		{
+			std::cerr << "\033[31m#1330_solar_panels Count not given\033[0m\n";
+			return 1;
 		}
 	}
 
 	/* ---------------------------------- CONTROL SYSTEMS ---------------------------------*/
 	auto control_systems = data["control_systems"];
 
-	if (control_systems["gyrostats"])
+	if (control_systems.isMember("gyrostats") && !control_systems["gyrostats"].isNull())
 	{
-		int count = control_systems["gyrostats"]["count"].asInt();
-		if (count % 3 != 0)
+		parameters_dict["Control_systems"]["gyrostats"] = true;
+		int count;
+		if (control_systems["gyrostats"].isMember("count") && !control_systems["gyrostats"]["count"].isNull())
 		{
-			std::cout << "There must be 3*N gyrostats. Check 'Gyrostats vs Reaction Wheels' chapter" << std::endl;
+			try
+			{
+				count = control_systems["gyrostats"]["count"].asInt();
+			}
+			catch (...)
+			{
+				std::cerr << "\033[31m#1431_gyrostats.count Invalid value " << control_systems["gyrostats"]["count"] << " for gyrostats count\033[0m\n";
+				return 1;
+			}
+
+			if (count % 3 != 0)
+			{
+				std::cerr << "\033[31m#1431_gyrostats There must be 3*N gyrostats. Check 'Gyrostats vs Reaction Wheels' chapter\033[0m" << std::endl;
+				return 1;
+			}
+
+			try
+			{
+				auto gyrs = get_parameters(control_systems["gyrostats"]["parameters"], "control_systems.gyrostats.parameters", count);
+				std::vector<AttitudeController> gyrostats(count);
+				PositionVector coords, limits, tmp;
+				Matrix inertia, ir;
+				double angular_momentum = 0.0, angvel, mass;
+
+				for (int i = 0; i < count; i++)
+				{
+					try
+					{
+						coords = get_doubles(gyrs[i]["location"], "gyrostats.parameters[" + std::to_string(i) + "].location", 3);
+						limits = get_doubles(gyrs[i]["limits"], "gyrostats.parameters[" + std::to_string(i) + "].limits", 3);
+						for (int k = 0; k < 3; k++)
+						{
+							ir[k][k] = gyrs[i]["inertia"][k].asDouble();
+							limits[k] *= ir[k][k];
+						}
+						angvel = gyrs[i]["angular_velocity"].asDouble();
+						mass = gyrs[i]["mass"].asDouble();
+						inertia = inertia + ir + coords.skew() * coords.skew() * (-1.0 * mass);
+						gyrostats[i] = AttitudeController(coords, angular_momentum, limits, mass);
+					}
+					catch (const std::exception& e)
+					{
+						std::cerr << "\033[31m#1431_gyrostats["  + std::to_string(i) + "] " << e.what() << "\033[0m\n";
+						return 1;
+					}
+				}
+
+				sat->setInertiaTensor(sat->getInertiaTensor() + inertia);
+				sat->setGyrostats(gyrostats);
+			}
+			catch (const std::exception& e)
+			{
+				std::cerr << "\033[31m#1431_gyrostats.parameters " << e.what() << "\033[0m\n";
+				return 1;
+			}
+		}
+		else
+		{
+			std::cerr << "\033[31m#1430_gyrostats Count not given\033[0m\n";
 			return 1;
 		}
-
-		auto gyrs = control_systems["gyrostats"]["parameters"];
-		std::vector<AttitudeController> gyrostats(count);
-		PositionVector coords, limits, tmp;
-		Matrix inertia, ir;
-		double angular_momentum = 0.0, angvel, mass;
-
-		for (int i = 0; i < count; i++)
-		{
-			for (int k = 0; k < 3; k++)
-			{
-				coords[k] = gyrs[i]["location"][k].asDouble();
-				ir[k][k] = gyrs[i]["inertia"][k].asDouble();
-				limits[k] = gyrs[i]["limits"][k].asDouble();
-				limits[k] *= ir[k][k];
-			}
-			angvel = gyrs[i]["angular_velocity"].asDouble();
-			mass = gyrs[i]["mass"].asDouble();
-			inertia = inertia + ir + coords.skew() * coords.skew() * (-1.0 * mass);
-			gyrostats[i] = AttitudeController(coords, angular_momentum, limits, mass);
-		}
-
-		sat->setInertiaTensor(sat->getInertiaTensor() + inertia);
-		sat->setGyrostats(gyrostats);
 	}
 
-	if (control_systems["reaction_wheels"])
+	if (control_systems.isMember("reaction_wheels") && !control_systems["reaction_wheels"].isNull())
 	{
-		int count = control_systems["reaction_wheels"]["count"].asInt();
-		if (count % 4 != 0)
+		parameters_dict["Control_systems"]["reaction_wheels"] = true;
+		int count;
+		if (control_systems["reaction_wheels"].isMember("count") && !control_systems["reaction_wheels"]["count"].isNull())
 		{
-			std::cout << "There must be exactly 4*N reaction wheels. Check 'Gyrostats vs Reaction Wheels' chapter" << std::endl;
+			try
+			{
+				count = control_systems["reaction_wheels"]["count"].asInt();
+			}
+			catch (...)
+			{
+				std::cerr << "\033[31m#1461_reaction_wheels.count Invalid value " << control_systems["reaction_wheels"]["count"] << " as count\033[0m\n";
+				return 1;
+			}
+			if (count % 4 != 0)
+			{
+				std::cerr << "\033[31m#1461_reaction_wheels There must be exactly 4*N reaction wheels. Check 'Gyrostats vs Reaction Wheels' chapter\033[0m" << std::endl;
+				return 1;
+			}
+
+			try
+			{		
+				auto all_rws = get_parameters(control_systems["reaction_wheels"]["parameters"], "control_systems.reaction_wheels.parameters", 1);
+
+				for (int rwb = 0; rwb < count / 4; rwb++)
+				{
+					std::vector<ReactionWheel> reaction_wheels(4);
+					PositionVector location, inertia_diag, limits, z_axis;
+					PositionVector angvel({0.0, 0.0, 0.0, 0.0});
+					Matrix inertia, ir, sat_inertia;
+					std::string apex;
+					double angular_momentum = 0.0, limit, mass, alpha, beta, tmp, dump_speed, acc_speed;
+					
+					try
+					{
+						auto rws = all_rws[rwb];
+
+						location = get_doubles(rws["location"], "reaction_wheels.parameters.location", 3);
+						inertia_diag = get_doubles(rws["inertia"], "reaction_wheels.parameters.inertia", 3);
+						angvel = get_doubles(rws["initial_speed"], "reaction_wheels.parameters.initial_speed", 4);
+
+						limit = rws["speed_limit"].asDouble();
+						limit *= inertia_diag[2]; // angular momentum limit
+
+						mass = rws["mass"].asDouble();
+
+						auto angles = get_doubles(rws["angles"], "reaction_wheels.parameters.angles", 2);
+
+						alpha = angles[0] * M_PI / 180.0;
+						beta = angles[1] * M_PI / 180.0;
+
+						apex = rws["pyramid_apex"].asString();
+
+						if (rws["dump_speed"]) { dump_speed = rws["dump_speed"].asDouble(); }
+						if (rws["acc_speed"]) { acc_speed = rws["acc_speed"].asDouble(); }
+
+						z_axis[0] = std::sin(alpha);
+						z_axis[1] = std::cos(alpha);
+						z_axis[2] = std::cos(alpha);
+						for (int i = 0; i < 4; i++)
+						{
+							if (i == 0)
+							{
+								z_axis[1] *= -1.0*std::cos(beta);
+								z_axis[2] *= -1.0*std::sin(beta);
+							}
+							if (i == 1)
+							{
+								tmp = location[1];
+								location[1] = -1.0 * location[2];
+								location[2] = tmp;
+
+								z_axis[1] *= std::sin(beta);
+								z_axis[2] *= -1.0*cos(beta);
+							}
+							if (i == 2)
+							{
+								location[1] *= -1.0;
+								location[2] *= -1.0;
+
+								z_axis[1] *= std::cos(beta);
+								z_axis[2] *= std::sin(beta);
+							}
+							if (i == 3)
+							{
+								tmp = location[1];
+								location[1] = location[2];
+								location[2] = -1.0 * tmp;
+
+								z_axis[1] *= -1.0*std::sin(beta);
+								z_axis[2] *= std::cos(beta);
+							}
+
+							reaction_wheels[i] = ReactionWheel(location, alpha, beta, z_axis,
+								Matrix(3,3,{{inertia_diag[0], 0.0, 0.0},{0.0, inertia_diag[1], 0.0},{0.0, 0.0, inertia_diag[2]}}), angvel[i], limit, mass, apex, dump_speed, acc_speed);
+							// converge inertia to satellite axes
+							ir[0][0] = z_axis[1] * z_axis[1];
+							ir[0][1] = z_axis[0] * z_axis[0];
+							ir[0][2] = 0.0;
+
+							ir[1][0] = z_axis[0]*z_axis[0]*z_axis[2]*z_axis[2];
+							ir[1][1] = z_axis[1]*z_axis[1]*z_axis[2]*z_axis[2];
+							ir[1][2] = (z_axis[0]*z_axis[0] - z_axis[1]*z_axis[1])*(z_axis[0]*z_axis[0] - z_axis[1]*z_axis[1]);
+
+							ir[2][0] = z_axis[0] * z_axis[0];
+							ir[2][1] = z_axis[1] * z_axis[1];
+							ir[2][2] = z_axis[2] * z_axis[2];
+
+							inertia_diag = mul(ir, inertia_diag);
+
+							double parallel_axis_theorem = mass * location.norm() * location.norm();
+
+							inertia[0][0] = inertia_diag[0] + parallel_axis_theorem;
+							inertia[1][1] = inertia_diag[1] + parallel_axis_theorem;
+							inertia[2][2] = inertia_diag[2] + parallel_axis_theorem;
+							
+							sat_inertia = sat_inertia + inertia + location.skew() * location.skew() * (-1.0 * mass);
+						}
+						sat->setInertiaTensor(sat->getInertiaTensor() + sat_inertia);
+						sat->setReactionWheelsBlock(reaction_wheels);
+						sat->setMass(sat->getMass() + (double)count * mass);
+					}
+					catch (const std::exception& e)
+					{
+						std::cerr << "\033[31m#11_reaction_wheels[" + std::to_string(rwb) + "] " << e.what() << "\033[0m\n";
+						return 1;
+					}
+				}
+			}
+			catch (const std::exception& e)
+			{
+				std::cerr << "\033[31m#1461_reaction_wheels.parameters " << e.what() << "\033[0m\n";
+				return 1;
+			}
+		}
+		else
+		{
+			std::cerr << "\033[31m#1460_reaction_wheels Count not given\033[0m\n";
 			return 1;
 		}
+	}
 
-		auto all_rws = control_systems["reaction_wheels"]["parameters"];
-
-		for (int rwb = 0; rwb < count / 4; rwb++)
+	if (control_systems.isMember("magnetorquers") && !control_systems["magnetorquers"].isNull())
+	{
+		parameters_dict["Control_systems"]["magnetorquers"] = true;
+		int count;
+		if (control_systems["magnetorquers"].isMember("count") && !control_systems["magnetorquers"]["count"].isNull())
 		{
-			std::vector<ReactionWheel> reaction_wheels(4);
-			PositionVector location, inertia_diag, limits, z_axis;
-			PositionVector angvel({0.0, 0.0, 0.0, 0.0});
-			Matrix inertia, ir, sat_inertia;
-			std::string apex;
-			double angular_momentum = 0.0, limit, mass, alpha, beta, tmp, dump_speed, acc_speed;
-			
-			auto rws = all_rws[rwb];
-
-			for (int i = 0; i < 3; i++)
+			try
 			{
-				location[i] = rws["location"][i].asDouble();
-				inertia_diag[i] = rws["inertia"][i].asDouble();
-				angvel[i] = rws["initial_speed"][i].asDouble();
+				count = control_systems["magnetorquers"]["count"].asInt();
+			}
+			catch (...)
+			{
+				std::cerr << "\033[31m#1441_magnetorquers.count Invalid value " << control_systems["magnetorquers"]["count"] << " of magnetorquers count\033[0m\n";
+				return 1;
 			}
 
-			angvel[3] = rws["initial_speed"][3].asDouble();
-			limit = rws["speed_limit"].asDouble();
-			limit *= inertia_diag[2]; // angular momentum limit
-
-			mass = rws["mass"].asDouble();
-
-			alpha = rws["angles"][0].asDouble() * M_PI / 180.0;
-			beta = rws["angles"][1].asDouble() * M_PI / 180.0;
-
-			apex = rws["pyramid_apex"].asString();
-
-			if (rws["dump_speed"]) { dump_speed = rws["dump_speed"].asDouble(); }
-			if (rws["acc_speed"]) { acc_speed = rws["acc_speed"].asDouble(); }
-
-			z_axis[0] = std::sin(alpha);
-			z_axis[1] = std::cos(alpha);
-			z_axis[2] = std::cos(alpha);
-			for (int i = 0; i < 4; i++)
+			try
 			{
-				if (i == 0)
+				auto magn = get_parameters(control_systems["magnetorquers"]["parameters"], "control_systems.magnetorquers.parameters", count);
+				std::vector<AttitudeController> magnetorquers(count);
+				double mass = 0.0, current = 0.0, total_mass = 0.0;
+				PositionVector max_dipole;
+				for (int i = 0; i < count; i++)
 				{
-					z_axis[1] *= -1.0*std::cos(beta);
-					z_axis[2] *= -1.0*std::sin(beta);
+					try
+					{
+						current = magn[i]["current"].asDouble();
+						max_dipole = get_doubles(magn[i]["max_dipole"], "magnetorquers["+std::to_string(i)+"].parameters.max_dipole", 3);
+						mass = magn[i]["mass"].asDouble();
+						
+						magnetorquers[i] = AttitudeController(
+							PositionVector({0.0, 0.0, 0.0}),
+							magn[i]["current"].asDouble(),
+							max_dipole,
+							mass
+							);
+						total_mass += mass;
+					}
+					catch (const std::exception& e)
+					{
+						std::cerr << "\033[31m#11_magnetorquers[" + std::to_string(i) + "] " << e.what() << "\033[0m\n";
+						return 1;
+					}
+
 				}
-				if (i == 1)
-				{
-					tmp = location[1];
-					location[1] = -1.0 * location[2];
-					location[2] = tmp;
-
-					z_axis[1] *= std::sin(beta);
-					z_axis[2] *= -1.0*cos(beta);
-				}
-				if (i == 2)
-				{
-					location[1] *= -1.0;
-					location[2] *= -1.0;
-
-					z_axis[1] *= std::cos(beta);
-					z_axis[2] *= std::sin(beta);
-				}
-				if (i == 3)
-				{
-					tmp = location[1];
-					location[1] = location[2];
-					location[2] = -1.0 * tmp;
-
-					z_axis[1] *= -1.0*std::sin(beta);
-					z_axis[2] *= std::cos(beta);
-				}
-
-				reaction_wheels[i] = ReactionWheel(location, alpha, beta, z_axis,
-					Matrix(3,3,{{inertia_diag[0], 0.0, 0.0},{0.0, inertia_diag[1], 0.0},{0.0, 0.0, inertia_diag[2]}}), angvel[i], limit, mass, apex, dump_speed, acc_speed);
-				// converge inertia to satellite axes
-				ir[0][0] = z_axis[1] * z_axis[1];
-				ir[0][1] = z_axis[0] * z_axis[0];
-				ir[0][2] = 0.0;
-
-				ir[1][0] = z_axis[0]*z_axis[0]*z_axis[2]*z_axis[2];
-				ir[1][1] = z_axis[1]*z_axis[1]*z_axis[2]*z_axis[2];
-				ir[1][2] = (z_axis[0]*z_axis[0] - z_axis[1]*z_axis[1])*(z_axis[0]*z_axis[0] - z_axis[1]*z_axis[1]);
-
-				ir[2][0] = z_axis[0] * z_axis[0];
-				ir[2][1] = z_axis[1] * z_axis[1];
-				ir[2][2] = z_axis[2] * z_axis[2];
-
-				inertia_diag = mul(ir, inertia_diag);
-
-				double parallel_axis_theorem = mass * location.norm() * location.norm();
-
-				inertia[0][0] = inertia_diag[0] + parallel_axis_theorem;
-				inertia[1][1] = inertia_diag[1] + parallel_axis_theorem;
-				inertia[2][2] = inertia_diag[2] + parallel_axis_theorem;
-				
-				sat_inertia = sat_inertia + inertia + location.skew() * location.skew() * (-1.0 * mass);
+				sat->setMagnetorquers(magnetorquers);
+				sat->setMass(sat->getMass() + total_mass);
 			}
-			sat->setInertiaTensor(sat->getInertiaTensor() + sat_inertia);
-			sat->setReactionWheelsBlock(reaction_wheels);
-			sat->setMass(sat->getMass() + (double)count * mass);
+			catch (const std::exception& e)
+			{
+				std::cerr << "\033[31m#1441_magnetorquers.parameters " << e.what() << "\033[0m\n";
+				return 1;
+			}
 		}
-	}
-
-	if (control_systems["magnetorquers"])
-	{
-		int count = control_systems["magnetorquers"]["count"].asInt();
-		auto magn = control_systems["magnetorquers"]["parameters"];
-		std::vector<AttitudeController> magnetorquers(count);
-		double mass = 0.0;
-		for (int i = 0; i < count; i++)
+		else
 		{
-			magnetorquers[i] = AttitudeController(
-				PositionVector(),
-				magn[i]["current"].asDouble(),
-				PositionVector({magn[i]["max_dipole"][0].asDouble(), magn[i]["max_dipole"][1].asDouble(), magn[i]["max_dipole"][2].asDouble()}),
-				magn[i]["mass"].asDouble()
-				);
-			mass += magn[i]["mass"].asDouble();
+			std::cerr << "\033[31m#1440_magnetorquers Count not given\033[0m\n";
+			return 1;
 		}
-		sat->setMagnetorquers(magnetorquers);
-		sat->setMass(sat->getMass() + mass);
 	}
 
-	if (control_systems["pulse_engines"])
+	if (control_systems.isMember("pulse_engines") && !control_systems["pulse_engines"].isNull())
 	{
-		int count = control_systems["pulse_engines"]["count"].asInt();
-		auto thr = control_systems["pulse_engines"]["parameters"];
-		std::vector<AttitudeController> thrusters(count);
-		double mass = 0.0;
-
-		for (int i = 0; i < count; i++)
+		parameters_dict["Control_systems"]["pulse_engines"] = true;
+		int count;
+		if (control_systems["pulse_engines"].isMember("count") && !control_systems["pulse_engines"]["count"].isNull())
 		{
-			thrusters[i] = AttitudeController(
-				PositionVector({thr[i]["position"][0].asDouble(), thr[i]["position"][1].asDouble(), thr[i]["position"][2].asDouble()}),
-				0.0,
-				PositionVector({thr[i]["limits"][0].asDouble(), thr[i]["limits"][1].asDouble(), thr[i]["limits"][2].asDouble()}),
-				thr[i]["mass"].asDouble()
-				);
-			mass += thr[i]["mass"].asDouble();
+			try
+			{
+				count = control_systems["pulse_engines"]["count"].asInt();
+			}
+			catch (...)
+			{
+				std::cerr << "\033[31m#1451_pulse_engines.count Invalid value " << control_systems["pulse_engines"]["count"] << " for count\033[0m\n";
+				return 1;
+			}
+
+			try
+			{
+				auto thr = get_parameters(control_systems["pulse_engines"]["parameters"], "control_systems.pulse_engines.parameters", count);
+				std::vector<AttitudeController> thrusters(count);
+				double mass = 0.0, total_mass = 0.0;
+				PositionVector position, limits;
+				for (int i = 0; i < count; i++)
+				{
+					try
+					{
+						position = get_doubles(thr[i]["position"], "pulse_engines.parameters["+std::to_string(i)+"].position", 3);
+						limits = get_doubles(thr[i]["limits"], "pulse_engines.parameters["+std::to_string(i)+"].limits", 3);
+						mass = thr[i]["mass"].asDouble();
+						thrusters[i] = AttitudeController(
+							position,
+							0.0,
+							limits,
+							mass
+							);
+						total_mass += mass;
+					}
+					catch (const std::exception& e)
+					{
+						std::cerr << "\033[31m#1451_pulse_engines[" + std::to_string(i) + "] " << e.what() << "\033[0m\n";
+						return 1;
+					}
+				}
+				sat->setThrusters(thrusters);
+				sat->setMass(sat->getMass() + mass);
+			}
+			catch (const std::exception& e)
+			{
+				std::cerr << "\033[31m#1451_pulse_engines.parameters " << e.what() << "\033[0m\n";
+				return 1;
+			}
 		}
-		sat->setThrusters(thrusters);
-		sat->setMass(sat->getMass() + mass);
-	}
-
-	if (control_systems["correction_engines"])
-	{
-		int count = control_systems["correction_engines"]["count"].asInt();
-		auto thr = control_systems["correction_engines"]["parameters"];
-		std::vector<AttitudeController> thrusters(count);
-		double mass = 0.0;
-
-		for (int i = 0; i < count; i++)
+		else
 		{
-			thrusters[i] = AttitudeController(
-				PositionVector({thr[i]["position"][0].asDouble(), thr[i]["position"][1].asDouble(), thr[i]["position"][2].asDouble()}),
-				0.0,
-				PositionVector({thr[i]["limits"][0].asDouble(), thr[i]["limits"][1].asDouble(), thr[i]["limits"][2].asDouble()}),
-				thr[i]["mass"].asDouble()
-				);
-			mass += thr[i]["mass"].asDouble();
+			std::cerr << "\033[31m#1450_pulse_engines Count not given\033[0m\n";
+			return 1;
 		}
-		sat->setCorrectionThrusters(thrusters);
-		sat->setMass(sat->getMass() + mass);
 	}
 
-	if (control_systems["control_order"])
+	if (control_systems.isMember("correction_engines") && !control_systems["correction_engines"].isNull())
 	{
-		Control::setControlOrder((char)control_systems["control_order"]["first"].asCString()[0], (char)control_systems["control_order"]["second"].asCString()[0]);
+		parameters_dict["Control_systems"]["correction_engines"] = true;
+		int count;
+		if (control_systems["correction_engines"].isMember("count") && !control_systems["correction_engines"]["count"].isNull())
+		{
+			try
+			{
+				count = control_systems["correction_engines"]["count"].asInt();
+			}
+			catch (...)
+			{
+				std::cerr << "\033[31m#1421_correction_engines.count Invalid value " << control_systems["correction_engines"]["count"] << " for count\033[0m\n";
+				return 1;
+			}
+
+			try
+			{
+				auto thr = get_parameters(control_systems["correction_engines"]["parameters"], "control_systems.correction_engines.parameters", count);
+				std::vector<AttitudeController> thrusters(count);
+				double mass = 0.0, total_mass = 0.0;
+				PositionVector position, limits;
+
+				for (int i = 0; i < count; i++)
+				{
+					try
+					{
+						position = get_doubles(thr[i]["position"], "correction_engines["+std::to_string(i)+"].parameters.position", 3);
+						limits = get_doubles(thr[i]["limits"], "correction_engines["+std::to_string(i)+"].parameters.limits", 3);
+						mass = thr[i]["mass"].asDouble();
+
+						thrusters[i] = AttitudeController(
+							position,
+							0.0,
+							limits,
+							mass
+							);
+						total_mass += mass;
+					}
+					catch (const std::exception& e)
+					{
+						std::cerr << "\033[31m#1421_correction_engines[" + std::to_string(i) + "] " << e.what() << "\033[0m\n";
+						return 1;
+					}
+				}
+				sat->setCorrectionThrusters(thrusters);
+				sat->setMass(sat->getMass() + mass);
+			}
+			catch (const std::exception& e)
+			{
+				std::cerr << "\033[31m#1421_correction_engines.parameters " << e.what() << "\033[0m\n";
+				return 1;
+			}
+		}
+		else
+		{
+			std::cerr << "\033[31m#1420_correction_engines Coutn not given\033[0m\n";
+			return 1;
+		}
+	}
+
+	if (control_systems.isMember("control_order") && !control_systems["control_order"].isNull())
+	{
+		char first = '0', second = '0';
+		if (control_systems["control_order"].isMember("first") && !control_systems["control_order"]["first"].isNull())
+		{
+			try
+			{
+				first = (char)control_systems["control_order"]["first"].asCString()[0];
+				if ((first != '0') && (first != 'r') && (first != 'g')) throw std::runtime_error("");
+			}
+			catch (...)
+			{
+				std::cerr << "\033[31m#1411_control_order.first Invalid value " << control_systems["control_order"]["first"] << "\033[0m\n";
+				return 1;
+			}
+		}
+		else
+		{
+			std::cerr << "\033[31m#1410_control_order.first Not given first control system\033[0m\n";
+			return 1;
+		}
+		if (control_systems["control_order"].isMember("second") && !control_systems["control_order"]["second"].isNull())
+		{
+			try
+			{
+				second = (char)control_systems["control_order"]["second"].asCString()[0];
+				if ((second != '0') && (second != 'r') && (second != 'g')) throw std::runtime_error("");
+			}
+			catch (...)
+			{
+				std::cerr << "\033[31m#1411_control_order.second Invalid value " << control_systems["control_order"]["second"] << "\033[0m\n";
+				return 1;
+			}
+		}
+		Control::setControlOrder(first, second);
+		parameters_dict["Control_systems"]["control_order"] = true;
 	}
 
 	/* ---------------------------------- ORBITAL CONTROL ------------------------------------ */
 	auto orbital_control = data["orbital_control"];
 
-	if (orbital_control["corrections"])
+	if (orbital_control.isMember("corrections") && !orbital_control["corrections"].isNull())
 	{
-		int count = orbital_control["corrections"]["count"].asInt();
-		auto corrections = orbital_control["corrections"]["parameters"];
-		PositionVector pulse;
-		for (int i = 0; i < count; i++)
+		parameters_dict["Orbital_control"]["corrections"] = true;
+		int count;
+		if (orbital_control["corrections"].isMember("count") && !orbital_control["corrections"]["count"].isNull())
 		{
-			pulse = PositionVector({
-				corrections[i]["pulse"][0].asDouble(), corrections[i]["pulse"][1].asDouble(), corrections[i]["pulse"][2].asDouble()
-			});
-			sat->setCorrection(Time(corrections[i]["start_time"].asString()), Time(corrections[i]["stop_time"].asString()), pulse);
+			try
+			{
+				count = orbital_control["corrections"]["count"].asInt();
+			}
+			catch (...)
+			{
+				std::cerr << "\033[31m#1511_orbital_control.corrections.count Invalid value " << orbital_control["corrections"]["count"] << " for count'\033[0m\n";
+				return 1;
+			}
+
+			try
+			{
+				auto corrections = get_parameters(orbital_control["corrections"]["parameters"], "orbital_control.corrections.parameters", count);
+				PositionVector pulse;
+				Time start_time, stop_time;
+				for (int i = 0; i < count; i++)
+				{
+					if (corrections[i].isMember("start_time") && !corrections[i]["start_time"].isNull())
+					{
+						try
+						{
+							start_time = Time(corrections[i]["start_time"].asString());
+						}
+						catch (const std::exception& e)
+						{
+							std::cerr << "\033[31m#1511_orbital_control.corrections["+std::to_string(i)+"].start_time " << e.what() << "\033[0m\n";
+							return 1;
+						}
+					}
+					else
+					{
+						std::cerr << "\033[31m#1510_orbital_control.corrections["+std::to_string(i)+"].start_time No start_time\033[0m\n";
+						return 1;
+					}
+					if (corrections[i].isMember("stop_time") && !corrections[i]["stop_time"].isNull())
+					{
+						try
+						{
+							stop_time = Time(corrections[i]["stop_time"].asString());
+						}
+						catch (const std::exception& e)
+						{
+							std::cerr << "\033[31m#1511_orbital_control.corrections["+std::to_string(i)+"].stop_time " << e.what() << "\033[0m\n";
+							return 1;
+						}
+					}
+					else
+					{
+						std::cerr << "\033[31m#1510_orbital_control.corrections["+std::to_string(i)+"].stop_time No stop time\033[0m\n";
+						return 1;
+					}
+					try
+					{
+						pulse = get_doubles(corrections[i]["pulse"], "orbital_control.corrections["+std::to_string(i)+"].parameters.pulse", 3);
+						sat->setCorrection(start_time, stop_time, pulse);
+					}
+					catch (const std::exception& e)
+					{
+						std::cerr << "\033[31m#1511_orbital_control.corrections["+std::to_string(i)+"] " << e.what() << "\033[0m\n";
+						return 1;
+					}
+
+				}
+			}
+			catch (const std::exception& e)
+			{
+				std::cerr << "\033[31m#1511_orbital_control.corrections.parameters " << e.what() << "\033[0m";
+				return 1;
+			}
+		}
+		else
+		{
+			std::cerr << "\033[31m#1510_orbital_control.corrections Count not given\033[0m\n";
+			return 1;
 		}
 	}
 
 	/* ---------------------------------------------- ATTITUDE MODES ------------------------- */
 	auto attitude_modes = data["attitude_modes"];
 
-	if (attitude_modes["stop_motion"])
+	if (attitude_modes.isMember("stop_motion") && !attitude_modes["stop_motion"].isNull())
 	{
-		int count = attitude_modes["stop_motion"]["count"].asInt();
-		auto sm = attitude_modes["stop_motion"]["parameters"];
-		//boost::math::quaternion<double> quat;
-		for (int i = 0; i < count; i++)
+		parameters_dict["Attitude_modes"]["stop_motion"] = true;
+		int count;
+		if (attitude_modes["stop_motion"].isMember("count") && !attitude_modes["stop_motion"]["count"].isNull())
 		{
-			sat->setStop(Time(sm[i]["start_time"].asString()), Time(sm[i]["stop_time"].asString()));
+			try
+			{
+				count = attitude_modes["stop_motion"]["count"].asInt();
+			}
+			catch (...)
+			{
+				std::cerr << "\033[31m#1641_stop_motion.count Invalid value " << attitude_modes["stop_motion"]["count"] << " for count\033[0m\n";
+				return 1;
+			}
+			
+			try
+			{
+				auto sm = attitude_modes["stop_motion"]["parameters"];
+				//boost::math::quaternion<double> quat;
+				Time start_time, stop_time;
+				for (int i = 0; i < count; i++)
+				{
+					if (sm[i].isMember("start_time") && !sm[i]["start_time"].isNull())
+					{
+						try
+						{
+							start_time = Time(sm[i]["start_time"].asString());
+						}
+						catch (const std::exception& e)
+						{
+							std::cerr << "\033[31m#1641_stop_motion["+std::to_string(i)+"].start_time " << e.what() << "\033[0m\n";
+							return 1;
+						}
+					}
+					else
+					{
+						std::cerr << "\033[31m#1640_stop_motion["+std::to_string(i)+"] No start_time\033[0m\n";
+						return 1;
+					}
+					if (sm[i].isMember("stop_time") && !sm[i]["stop_time"].isNull())
+					{
+						try
+						{
+							stop_time = Time(sm[i]["stop_time"].asString());
+						}
+						catch (const std::exception& e)
+						{
+							std::cerr << "\033[31m#1641_stop_motion["+std::to_string(i)+"].stop_time " << e.what() << "\033[0m\n";
+							return 1;
+						}
+					}
+					else
+					{
+						std::cerr << "\033[31m#1640_stop_motion["+std::to_string(i)+"] No stop_time\033[0m\n";
+						return 1;
+					}
+
+					sat->setStop(start_time, stop_time);
+
+				}
+				sat->disableCounterrotation();
+			}
+			catch (const std::exception& e)
+			{
+				std::cerr << "\033[31m#1641_stop_motion.parameters " << e.what() << "\033[0m\n";
+				return 1;
+			}
 		}
-		sat->disableCounterrotation();
+		else 
+		{
+			std::cerr << "\033[31m#1640_stop_motion Count not given\033[0m\n";
+			return 1;
+		}
 	}
 
-	if (attitude_modes["slew_motion"])
+	if (attitude_modes.isMember("slew_motion") && !attitude_modes["slew_motion"].isNull())
 	{
-		int count = attitude_modes["slew_motion"]["count"].asInt();
-		auto sm = attitude_modes["slew_motion"]["parameters"];
-		Quaternion quat;
-		for (int i = 0; i < count; i++)
+		parameters_dict["Attitude_modes"]["slew_motion"] = true;
+		int count;
+		if (attitude_modes["slew_motion"].isMember("count") && !attitude_modes["slew_motion"]["count"].isNull())
 		{
-			quat = Quaternion(sm[i]["quaternion"][0].asDouble(), sm[i]["quaternion"][1].asDouble(), sm[i]["quaternion"][2].asDouble(), sm[i]["quaternion"][3].asDouble());
-			sat->setSlew(Time(sm[i]["start_time"].asString()), Time(sm[i]["stop_time"].asString()), quat);
+			try
+			{
+				count = attitude_modes["slew_motion"]["count"].asInt();
+			}
+			catch (...)
+			{
+				std::cerr << "\033[31m#1631_slew_motion.count Invalid value " << attitude_modes["slew_motion"]["count"] << " for count\033[0m\n";
+				return 1;
+			}
+
+			try
+			{
+				auto sm = get_parameters(attitude_modes["slew_motion"]["parameters"], "slew_motion.parameters", count);
+				Time start_time, stop_time;
+				PositionVector q(4);
+				for (int i = 0; i < count; i++)
+				{
+					if (sm[i].isMember("start_time") && !sm[i]["start_time"].isNull())
+					{
+						try
+						{
+							start_time = Time(sm[i]["start_time"].asString());
+						}
+						catch (const std::exception& e)
+						{
+							std::cerr << "\033[31m#1631_slew_motion["+std::to_string(i)+"].start_time " << e.what() << "\033[0m\n";
+							return 1;
+						}
+					}
+					else
+					{
+						std::cerr << "\033[31m#1630_slew_motion["+std::to_string(i)+"] No start_time\033[0m\n";
+						return 1;
+					}
+					if (sm[i].isMember("stop_time") && !sm[i]["stop_time"].isNull())
+					{
+						try
+						{
+							stop_time = Time(sm[i]["stop_time"].asString());
+						}
+						catch (const std::exception& e)
+						{
+							std::cerr << "\033[31m#1631_slew_motion["+std::to_string(i)+"].stop_time " << e.what() << "\033[0m\n";
+							return 1;
+						}
+					}
+					else
+					{
+						std::cerr << "\033[31m#1630_slew_motion["+std::to_string(i)+"] No stop_time\033[0m\n";
+						return 1;
+					}
+					if (sm[i].isMember("quaternion") && !sm[i]["quaternion"].isNull())
+					{
+						try
+						{
+							q = get_doubles(sm[i]["quaternion"], "slew_motion["+std::to_string(i)+"].quaternion", 4);
+						}
+						catch (const std::exception& e)
+						{
+							std::cerr << "\033[31m#1631_slew_motion["+std::to_string(i)+"].quaternion " << e.what() << "\033[0m\n";
+							return 1;
+						}
+					}
+					else
+					{
+						std::cerr << "\033[31m#1630_slew_motion["+std::to_string(i)+"].quaternion Quaternion not given\033[0m\n";
+						return 1;
+					}
+					sat->setSlew(start_time, stop_time, Quaternion(q[0], q[1], q[2], q[3]));
+				}
+			}
+			catch (const std::exception& e)
+			{
+				std::cerr << "\033[31m#1631_slew_motion.parameters " << e.what() << "\033[0m\n";
+				return 1;
+			}
+		}
+		else
+		{
+			std::cerr << "\033[31m#1630_slew_motion.count Count not given\033[0m\n";
+			return 1;
 		}
 	}
 
-	if (attitude_modes["scan_motion"])
+	if (attitude_modes.isMember("scan_motion") && !attitude_modes["scan_motion"].isNull())
 	{
-		int count = attitude_modes["scan_motion"]["count"].asInt();
-		auto sc = attitude_modes["scan_motion"]["parameters"];
-		for (int i = 0; i < count; i++)
+		parameters_dict["Attitude_modes"]["scan_motion"] = true;
+		int count;
+		if (attitude_modes["slew_motion"].isMember("count") && !attitude_modes["slew_motion"]["count"].isNull())
 		{
-			PositionVector angvel = PositionVector({
-				sc[i]["velocity"][0].asDouble(), sc[i]["velocity"][1].asDouble(), sc[i]["velocity"][2].asDouble()
-			});
-			sat->setScan(Time(sc[i]["start_time"].asString()), Time(sc[i]["stop_time"].asString()), angvel);
+			try
+			{
+				count = attitude_modes["scan_motion"]["count"].asInt();
+			}
+			catch (...)
+			{
+				std::cerr << "\033[31m#1621_scan_motion.count Invalid value " << attitude_modes["scan_motion"]["count"] << " for count\033[0m\n";
+				return 1;
+			}
+
+			try
+			{
+				auto sm = get_parameters(attitude_modes["scan_motion"]["parameters"], "scan_motion.parameters", count);
+				Time start_time, stop_time;
+				PositionVector v(3);
+				for (int i = 0; i < count; i++)
+				{
+					if (sm[i].isMember("start_time") && !sm[i]["start_time"].isNull())
+					{
+						try
+						{
+							start_time = Time(sm[i]["start_time"].asString());
+						}
+						catch (const std::exception& e)
+						{
+							std::cerr << "\033[31m#1621_scan_motion["+std::to_string(i)+"].start_time " << e.what() << "\033[0m\n";
+							return 1;
+						}
+					}
+					else
+					{
+						std::cerr << "\033[31m#1620_scan_motion["+std::to_string(i)+"] No start_time\033[0m\n";
+						return 1;
+					}
+					if (sm[i].isMember("stop_time") && !sm[i]["stop_time"].isNull())
+					{
+						try
+						{
+							stop_time = Time(sm[i]["stop_time"].asString());
+						}
+						catch (const std::exception& e)
+						{
+							std::cerr << "\033[31m#1621_scan_motion["+std::to_string(i)+"].stop_time " << e.what() << "\033[0m\n";
+							return 1;
+						}
+					}
+					else
+					{
+						std::cerr << "\033[31m#1620_scan_motion["+std::to_string(i)+"] No stop_time\033[0m\n";
+						return 1;
+					}
+					if (sm[i].isMember("velocity") && !sm[i]["velocity"].isNull())
+					{
+						try
+						{
+							v = get_doubles(sm[i]["velocity"], "scan_motion["+std::to_string(i)+"].velocity", 3);
+						}
+						catch (const std::exception& e)
+						{
+							std::cerr << "\033[31m#1621_scan_motion["+std::to_string(i)+"].velocity " << e.what() << "\033[0m\n";
+							return 1;
+						}
+					}
+					else
+					{
+						std::cerr << "\033[31m#1620_scan_motion["+std::to_string(i)+"].velocity Velocity not given\033[0m\n";
+						return 1;
+					}
+					sat->setScan(start_time, stop_time, v);
+				}
+			}
+			catch (const std::exception& e)
+			{
+				std::cerr << "\033[31m#1621_scan_motion.parameters " << e.what() << "\033[0m\n";
+				return 1;
+			}
+		}
+		else
+		{
+			std::cerr << "\033[31m#1620_scan_motion.count Count not given\033[0m\n";
+			return 1;
 		}
 	}
 
-	if (attitude_modes["dump"])
+	if (attitude_modes.isMember("dump") && !attitude_modes["dump"].isNull())
 	{
-		int count = attitude_modes["dump"]["count"].asInt();
-		auto dp = attitude_modes["dump"]["parameters"];
-		for (int i = 0; i < count; i++)
+		parameters_dict["Attitude_modes"]["dump"] = true;
+		int count;
+		if (attitude_modes["dump"].isMember("count") && !attitude_modes["dump"]["count"].isNull())
 		{
-			sat->setDump(Time(dp[i]["start_time"].asString()), Time(dp[i]["stop_time"].asString()));			
+			try
+			{
+				count = attitude_modes["dump"]["count"].asInt();
+			}
+			catch (...)
+			{
+				std::cerr << "\033[31m#1611_dump.count Invalid value " << attitude_modes["dump"]["count"] << " for count\033[0m\n";
+				return 1;
+			}
+
+			try
+			{
+				auto sm = get_parameters(attitude_modes["dump"]["parameters"], "dump.parameters", count);
+				Time start_time, stop_time;
+				for (int i = 0; i < count; i++)
+				{
+					if (sm[i].isMember("start_time") && !sm[i]["start_time"].isNull())
+					{
+						try
+						{
+							start_time = Time(sm[i]["start_time"].asString());
+						}
+						catch (const std::exception& e)
+						{
+							std::cerr << "\033[31m#1611_dump["+std::to_string(i)+"].start_time " << e.what() << "\033[0m\n";
+							return 1;
+						}
+					}
+					else
+					{
+						std::cerr << "\033[31m#1610_dump["+std::to_string(i)+"] No start_time\033[0m\n";
+						return 1;
+					}
+					if (sm[i].isMember("stop_time") && !sm[i]["stop_time"].isNull())
+					{
+						try
+						{
+							stop_time = Time(sm[i]["stop_time"].asString());
+						}
+						catch (const std::exception& e)
+						{
+							std::cerr << "\033[31m#1611_dump["+std::to_string(i)+"].stop_time " << e.what() << "\033[0m\n";
+							return 1;
+						}
+					}
+					else
+					{
+						std::cerr << "\033[31m#1610_dump["+std::to_string(i)+"] No stop_time\033[0m\n";
+						return 1;
+					}
+					sat->setDump(start_time, stop_time);
+				}
+			}
+			catch (const std::exception& e)
+			{
+				std::cerr << "\033[31m#1611_dump.parameters " << e.what() << "\033[0m\n";
+				return 1;
+			}
+		}
+		else
+		{
+			std::cerr << "\033[31m#1610_dump.count Count not given\033[0m\n";
+			return 1;
 		}
 	}
 
@@ -1359,60 +2215,118 @@ int Input::read_json_file(const std::string& filename, Satellite* sat, Time* tim
 	/* ------------------------------ FORCES & TORQUES ------------------------------------------------- */
 	auto forces = data["forces"];
 
-	if (forces["gravity_force"])
+	if (forces.isMember("gravity_force") && !forces["gravity_force"].isNull())
 	{
 		if (forces["gravity_force"].asString() == "true")
+		{
 			Forces::account_for_earth_gravity = true;
-		else
+			parameters_dict["Forces_and_torques"]["gravity_force"] = true;
+		}
+		else if (forces["gravity_force"].asString() == "false")
 			Forces::account_for_earth_gravity = false;
+		else
+		{
+			std::cerr << "\033[31m#1711_gravity_force Invalid value " << forces["gravity_force"] << " of flag\033[0m\n";
+			return 1;
+		}
 	}
 
-	if (forces["gravity_order"])
+	if (forces.isMember("gravity_order") && !forces["gravity_order"].isNull())
 	{
-		if (forces["gravity_order"].asInt() != 0)
-			Forces::setGravityOrder(forces["gravity_order"].asInt());
+		int go;
+		if (!forces["gravity_order"].isInt())
+		{
+			std::cerr << "\033[31m#1721_gravity_order invalid value " << forces["gravity_order"] << " of gravity order\033[0m\n";
+			return 1;
+		}
+		go = forces["gravity_order"].asInt();
+		if (go > 0)
+		{
+			Forces::setGravityOrder(go);
+			parameters_dict["Forces_and_torques"]["gravity_order"] = true;
+		}
 		else
 			Forces::setGravityOrder(0);
 	}
 
-	if (forces["outer_gravity"])
+	if (forces.isMember("outer_gravity") && !forces["outer_gravity"].isNull())
 	{
 		if (forces["outer_gravity"].asString() == "true")
+		{
 			Forces::account_for_outer_gravity = true;
-		else
+			parameters_dict["Forces_and_torques"]["outer_gravity"] = true;
+		}
+		else if (forces["outer_gravity"].asString() == "false")
 			Forces::account_for_outer_gravity = false;
+		else
+		{
+			std::cerr << "\033[31#1751_outer_gravity Invalid value " << forces["outer_gravity"] << " of flag\033[0m\n";
+			return 1;
+		}
 	}
 
-	if (forces["solar_pressure_force"])
+	if (forces.isMember("solar_pressure_force") && !forces["solar_pressure_force"].isNull())
 	{
 		if (forces["solar_pressure_force"].asString() == "true")
+		{
 			Forces::account_for_solar_pressure = true;
-		else
+			parameters_dict["Forces_and_torques"]["solar_pressure_force"] = true;
+		}
+		else if (forces["solar_pressure_force"].asString() == "false")
 			Forces::account_for_solar_pressure = false;
+		else
+		{
+			std::cerr << "\033[31#1761_solar_pressure_force Invalid value " << forces["solar_pressure_force"] << " of flag\033[0m\n";
+			return 1;
+		}
 	}
 
-	if (forces["gravity_torque"])
+	if (forces.isMember("gravity_torque") && !forces["gravity_torque"].isNull())
 	{
 		if (forces["gravity_torque"].asString() == "true")
+		{
 			Torques::account_for_earth_torque = true;
-		else
+			parameters_dict["Forces_and_torques"]["gravity_torque"] = true;
+		}
+		else if (forces["gravity_torque"].asString() == "false")
 			Torques::account_for_earth_torque = false;
+		else
+		{
+			std::cerr << "\033[31m#1731_gravity_torque Invalid value " << forces["gravity_torque"] << " for flag\033[0m\n";
+			return 1;
+		}
 	}
 
-	if (forces["solar_pressure_torque"])
+	if (forces.isMember("solar_pressure_torque") && !forces["solar_pressure_torque"].isNull())
 	{
 		if (forces["solar_pressure_torque"].asString() == "true")
+		{
 			Torques::account_for_solar_pressure = true;
-		else
+			parameters_dict["Forces_and_torques"]["solar_pressure_torque"] = true;
+		}
+		else if (forces["solar_pressure_torque"].asString() == "false")
 			Torques::account_for_solar_pressure = false;
+		else
+		{
+			std::cerr << "\033[31m#1771_solar_pressure_torque Invalid value " << forces["solar_pressure_torque"] << " for flag\033[0m\n";
+			return 1;
+		}
 	}
 
-	if (forces["magnetic_torque"])
+	if (forces.isMember("magnetic_torque") && !forces["magnetic_torque"].isNull())
 	{
 		if (forces["magnetic_torque"].asString() == "true")
+		{
 			Torques::account_for_magnetic_torque = true;
-		else
+			parameters_dict["Forces_and_torques"]["magnetic_torque"] = true;
+		}
+		else if (forces["magnetic_torque"].asString() == "false")
 			Torques::account_for_magnetic_torque = false;
+		else
+		{
+			std::cerr << "\033[31m#1741_magnetic_torque Invalid value " << forces["magnetic_torque"] << " for flag\033[0m\n";
+			return 1;
+		}
 	}
 
 	/*-------------------------------- FILENAMES ------------------------------------------------------------*/
@@ -1421,52 +2335,84 @@ int Input::read_json_file(const std::string& filename, Satellite* sat, Time* tim
 	auto input_filenames = filenames["input"];
 	auto output_filenames = filenames["output"];
 
-	if (output_filenames["save_path"])
+	if (output_filenames.isMember("save_path") && !output_filenames["save_path"].isNull())
 	{
 		FILENAMES::ephemeris_filename = output_filenames["save_path"].asString();
+		parameters_dict["Filenames"]["save_path"] = true;
 	}
 
-	if (output_filenames["telemetry_path"])
+	if (output_filenames.isMember("telemetry_path") && !output_filenames["telemetry_path"].isNull())
 	{
 		FILENAMES::telemetry_filename = output_filenames["telemetry_path"].asString();
+		parameters_dict["Filenames"]["telemetry_path"] = true;
 	}
 
-	if (output_filenames["output_info_path"])
+	if (output_filenames.isMember("output_info_path") && !output_filenames["output_info_path"].isNull())
 	{
 		FILENAMES::output_info_filename = output_filenames["output_info_path"].asString();
+		parameters_dict["Filenames"]["output_info_path"] = true;
 	}
 
-	if (input_filenames["egm_path"])
+	if (input_filenames.isMember("egm_path") && !input_filenames["egm_path"].isNull())
 	{
 		Forces::setEGMfile(input_filenames["egm_path"].asString());
+		parameters_dict["Filenames"]["egm_path"] = true;
 	}
 
-	if (input_filenames["eop_path"])
+	if (input_filenames.isMember("eop_path") && !input_filenames["eop_path"].isNull())
 	{
 		Astrometry::setEOPfile(input_filenames["eop_path"].asString());
+		parameters_dict["Filenames"]["eop_path"] = true;
 	}
 
-	if (input_filenames["tls_path"])
+	if (input_filenames.isMember("tls_path") && !input_filenames["tls_path"].isNull())
 	{
 		Astrometry::setTLSfile(input_filenames["tls_path"].asString());
+		parameters_dict["Filenames"]["tls_path"] = true;
 	}
 
-	if (input_filenames["eph_path"])
+	if (input_filenames.isMember("eph_path") && !input_filenames["eph_path"].isNull())
 	{
 		Astrometry::setEPHEMfile(input_filenames["eph_path"].asString());
+		parameters_dict["Filenames"]["eph_path"] = true;
 	}
 
-	if (input_filenames["igrf_path"])
+	if (input_filenames.isMember("igrf_path") && !input_filenames["igrf_path"].isNull())
 	{
 		Torques::setIGRFfile(input_filenames["igrf_path"].asString());
+		parameters_dict["Filenames"]["igrf_path"] = true;
 	}
 
-	if (input_filenames["gm_path"])
+	if (input_filenames.isMember("gm_path") && !input_filenames["gm_path"].isNull())
 	{
 		Astrometry::setGMfile(input_filenames["gm_path"].asString());
+		parameters_dict["Filenames"]["gm_path"] = true;
 	}
 
-	std::cout << "Done reading json file" << std::endl;
+	std::cout << "\033[32mDone reading json file\033[0m" << std::endl;
+	input_statistics();
+
+	char ans;
+	std::cout << "Do you wish to continue modeling with this set of parameters Y/N? ";
+	std::cin >> ans;
+	if ((ans != 'Y') && (ans != 'y')) return 1;
 
 	return 0;
+}
+
+
+void Input::input_statistics()
+{
+	for (const auto& elem: parameters_dict)
+	{
+		std::cout << elem.first << ": " << std::endl;
+		std::cout << std::left;
+		for (const auto& param: elem.second)
+		{
+			if (param.second)
+				std::cout << "     " << "\033[32m" << std::setw(26) << param.first << "OK" << "\033[0m" << std::endl;
+			else
+				std::cout << "     " << "\033[31m" << std::setw(26) << param.first << "NOT GIVEN" << "\033[0m" << std::endl;
+		}
+	}
 }

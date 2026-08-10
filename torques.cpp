@@ -33,17 +33,17 @@ void Torques::get_magnetic_coefficients(const Time& time)
 	{
 		if (no_magnetic_field_warning) {return;}
 		no_magnetic_field_warning = true;
-		std::cout << "No model of magnetic field for this year (< 2015 or > 2025)" << std::endl;
+		std::cout << "\033[33mNo model of magnetic field for this year (< 2015 or > 2025)\033[0m" << std::endl;
 		return;
 		Gnm = std::vector<double>(((magnetic_order + 2) * (magnetic_order + 1) / 2), 0.0);
 		Hnm = std::vector<double>(((magnetic_order + 2) * (magnetic_order + 1) / 2), 0.0);
 	}
-	std::cout << "I'm about to collect magnetic coefficients" << std::endl;
+	//std::cout << "I'm about to collect magnetic coefficients" << std::endl;
 	no_magnetic_field_warning = false;
 
 	if (igrffilename.length() == 0)
 	{
-		std::cout << "No IGRF file given" << std::endl;
+		std::cerr << "\033[31m#051 No IGRF file given in the input file\033[0m" << std::endl;
 		Gnm = std::vector<double>(((magnetic_order + 2) * (magnetic_order + 1) / 2), 0.0);
 		Hnm = std::vector<double>(((magnetic_order + 2) * (magnetic_order + 1) / 2), 0.0);
 		return;
@@ -107,15 +107,19 @@ void Torques::get_magnetic_coefficients(const Time& time)
 		igrf.close();
 	}
 	else {
-		std::cout << "Incorrect IGRF filename" << std::endl;
+		std::cerr << "\033[31m#052 Incorrect IGRF filename: " << igrffilename << "\033[0m" << std::endl;
+		std::exit(EXIT_FAILURE);
+		return;
 	}
+	return;
 }
 
 void Torques::get_thrusters_activation_times()
 {
 	if (thrustersfilename.length() == 0)
 	{
-		std::cout << "Thrusters data file not given" << std::endl;
+		std::cerr << "\033[31m#061 Thrusters data file not given in the input file\033[0m" << std::endl;
+		std::exit(EXIT_FAILURE);
 		return;
 	}
 
@@ -134,7 +138,9 @@ void Torques::get_thrusters_activation_times()
 	}
 	else
 	{
-		std::cout << "Incorrect thrusters data filename" << std::endl;
+		std::cerr << "\033[31m#062 Incorrect thrusters data filename: " << thrustersfilename << "\033[0m" << std::endl;
+		std::exit(EXIT_FAILURE);
+		return;
 	}
 }
 
@@ -142,7 +148,8 @@ void Torques::get_magnets_activation_times()
 {
 	if (magnfilename.length() == 0)
 	{
-		std::cout << "Magnets data file not given" << std::endl;
+		std::cerr << "\033[31m#071 Magnets data file not given\033[0m" << std::endl;
+		std::exit(EXIT_FAILURE);
 		return;
 	}
 
@@ -161,7 +168,9 @@ void Torques::get_magnets_activation_times()
 	}
 	else
 	{
-		std::cout << "Incorrect magnetic toruqers data filename" << std::endl;
+		std::cerr << "\033[31m#072 Incorrect magnetic toruqers data filename: " << magnfilename << "\033[0m" << std::endl;
+		std::exit(EXIT_FAILURE);
+		return;
 	}
 	
 
@@ -176,7 +185,7 @@ void Torques::get_magnets_activation_times()
 	}
 	else
 	{
-		std::cout << "Incorrect magnetic field data filename" << std::endl;
+		std::cerr << "\033[31mIncorrect magnetic field data filename\033[0m" << std::endl;
 	}
 
 }
@@ -371,7 +380,7 @@ void Torques::solar_torque(Satellite& sat, const Time& time)
 {
 	if (sat.getPolygons().size() == 0)
 	{
-		std::cout << "No polygons given, skipping solar pressure torque" << std::endl;
+		std::cerr << "\033[33mNo polygons given, skipping solar pressure torque\033[0m" << std::endl;
 		return;
 	}
 	double state[6];
@@ -450,10 +459,9 @@ void Torques::solar_torque(Satellite& sat, const Time& time)
 	// std::cout << "At time " << time << " center of pressure: " << center_of_pressure << std::endl;
 
 	Forces::setSolarPressureCalculated(true);
-	Forces::setSolarPressureForce(total_force);
+	Forces::setSolarPressureForce(total_force * ef * SUN::FLUX / WORLD::SPEED_OF_LIGHT * pow(WORLD::AU / r, 2));
 }
 
-/*
 void Torques::srpTorque(Satellite& sat, const Time& time)
 {
 	SRPEngine engine(sat.getHdfFile());
@@ -505,7 +513,6 @@ void Torques::srpTorque(Satellite& sat, const Time& time)
 	Forces::setSolarPressureCalculated(true);
 	Forces::setSolarPressureForce(PositionVector({res.total_force[0], res.total_force[1], res.total_force[2]}) * ef);
 }
-*/
 
 void Torques::magnetic_torque(const Satellite& sat)
 {
@@ -545,9 +552,8 @@ PositionVector Torques::allTorques(Satellite& sat, const Time& time)
 	//std::cout << torques << std::endl;
 	if (account_for_solar_pressure)
 	{
-		//if (sat.getHdfFile() != "") srpTorque(sat, time);
-		//else solar_torque(sat, time);
-		solar_torque(sat, time);
+		if (sat.getHdfFile() != "") srpTorque(sat, time);
+		else solar_torque(sat, time);
 	}
 	//std::cout << torques << std::endl;
 	if (account_for_magnetic_torque) magnetic_torque(sat);

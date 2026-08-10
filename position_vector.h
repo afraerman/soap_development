@@ -5,6 +5,7 @@ private:
 	std::vector<double> values;
 public:
 	PositionVector();
+	PositionVector(const int dim);
 	PositionVector(const std::vector<double>&);
 
 	double dot(const PositionVector&) const;
