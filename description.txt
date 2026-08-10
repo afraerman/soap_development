@@ -1,1 +1,0 @@
-This derictory contains source files (.cpp and .h) to effectively update from both Windows and Linux OS
