@@ -41,12 +41,20 @@ if(NOT SOAP_JSON_H_DIR)
 endif()
 target_include_directories(${PROJECT_NAME} PRIVATE ${SOAP_JSON_H_DIR})
 
+include(FetchContent)
+FetchContent_Declare(SRP
+    GIT_REPOSITORY https://github.com/paulzap/Real-Time-Solar-Radiation-Pressure-Modeling.git
+    GIT_TAG        main
+    GIT_SHALLOW    TRUE)
+
+FetchContent_MakeAvailable(SRP)
+
 if(WIN32)
-    set(SOAP_CSPICE "${CMAKE_CURRENT_SOURCE_DIR}/cspice.lib")
-    set(SOAP_SOFA   "${CMAKE_CURRENT_SOURCE_DIR}/sofa_lib.lib")
+    set(SOAP_CSPICE "${CMAKE_CURRENT_SOURCE_DIR}/libs/cspice.lib")
+    set(SOAP_SOFA   "${CMAKE_CURRENT_SOURCE_DIR}/libs/sofa_lib.lib")
 else()
-    set(SOAP_CSPICE "${CMAKE_CURRENT_SOURCE_DIR}/cspice.a")
-    set(SOAP_SOFA   "${CMAKE_CURRENT_SOURCE_DIR}/libsofa_c.a")
+    set(SOAP_CSPICE "${CMAKE_CURRENT_SOURCE_DIR}/libs/cspice.a")
+    set(SOAP_SOFA   "${CMAKE_CURRENT_SOURCE_DIR}/libs/libsofa_c.a")
 endif()
 
 foreach(_lib ${SOAP_CSPICE} ${SOAP_SOFA})
