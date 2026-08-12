@@ -109,7 +109,8 @@ public:
 	/// @param interval interval of integration
 	/// @param step step of integration
 	/// @param ost step of output data
+	/// @param screen_check Flag for enabeling screen check while integrating
 	/// @return 1 if anything goes wrong. Error 01 -- error while opening json, 1_#name -- incorrect field in json file
-	static int read_json_file(const std::string& filename, Satellite* sat, Time* time, double& interval, double& step, double& ost);
+	static int read_json_file(const std::string& filename, Satellite* sat, Time* time, double& interval, double& step, double& ost, bool& screen_check);
 	static int read_multiple_satellites_filenames(const std::string& filename, std::vector<std::string>& filenames);
 };

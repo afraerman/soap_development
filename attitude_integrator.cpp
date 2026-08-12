@@ -637,6 +637,7 @@ void AttitudeIntegrator::integrationMethod(Satellite& sat, Time& time, double st
 	}
 
 	elapsed_time++;
+	
 	gyrostats_momentum = sat.getGyrostatsMomentum() + sat.getReactionWheelsBlockMomentum3d();
 
 	//if (std::isnan(torque[0])) torque = future_torque.get();

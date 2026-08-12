@@ -356,6 +356,10 @@ void Forces::solarPressureForce(Satellite& sat, const Time& time)
 	std::vector<Polygon> polygons = sat.getPolygons();
 	std::vector<Polygon> solar_panels = sat.getSolarPanels();
 	int number_of_rejected_polygons = 0;
+	for (int i = 0; i < solar_panels.size(); i++)
+	{
+		polygons.push_back(solar_panels[i]);
+	}
 	for (int i = 0; i < polygons.size(); i++)
 	{
 		//gcrf_normal = mul(ltg, polygons[i].getNormal());

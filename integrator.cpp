@@ -11,9 +11,10 @@ Integrator::Integrator()
 	from_the_start = true;
 	elapsed_time = 0.0;
 	output_step = 0.0;
+	enable_screen_check = true;
 }
 
-Integrator::Integrator(Satellite* sat, Time* t, double i, double st, double ost, bool astep, double tol)
+Integrator::Integrator(Satellite* sat, Time* t, double i, double st, double ost, bool astep, double tol, bool screen_check)
 {
 	satellite = sat;
 	time = t;
@@ -24,6 +25,7 @@ Integrator::Integrator(Satellite* sat, Time* t, double i, double st, double ost,
 	from_the_start = true;
 	elapsed_time = 0.0;
 	output_step = ost;
+	enable_screen_check = screen_check;
 
 	if (step <= 0) autoStepOn();
 }
@@ -335,8 +337,11 @@ void Integrator::integrate(std::string savefilename)
 			var_time1 = *time;
 
 			// screen check
-			if ((int)elapsed_time / (100 * (int)h) != (int)(elapsed_time - h) / (100 * (int)h))
-				std::cout << *time << std::endl;
+			if (enable_screen_check)
+			{
+				if ((int)elapsed_time / (100 * (int)h) != (int)(elapsed_time - h) / (100 * (int)h))
+					std::cout << *time << std::endl;
+			}
 
 			// final step to match interval
 			if (elapsed_time + h > interval) h = interval - elapsed_time;
@@ -470,9 +475,12 @@ void Integrator::integrate(std::string savefilename)
 		while (elapsed_time < interval)
 		{
 			// screen check
-			if ((int)elapsed_time / 100 != (int)(elapsed_time - h) / 100)
-				std::cout << *time << std::endl;
-
+			if (enable_screen_check)
+			{	
+				if ((int)elapsed_time / 100 != (int)(elapsed_time - h) / 100)
+					std::cout << *time << std::endl;
+			}
+			
 			if (elapsed_time + h > interval) h = interval - elapsed_time;
 			integrationMethod(*satellite, *time, h, from_the_start);
 			satellite->update();

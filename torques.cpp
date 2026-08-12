@@ -65,7 +65,6 @@ void Torques::get_magnetic_coefficients(const Time& time)
 	Hnm = std::vector<double>((magnetic_order + 2) * (magnetic_order + 1) / 2);
 
 	Gnm[0] = 0.0; Hnm[0] = 0.0; // n = 0
-	Hnm[1] = 0.0; // n = 1
 
 	int i_g, i_h, nn, mm;
 	double c_2015, c_2020, sv, c_base, c_dot, t_base, t;
@@ -92,10 +91,15 @@ void Torques::get_magnetic_coefficients(const Time& time)
 
 			t = (double)(time.getYear() - t_base) + double(time.getMonth() - 1) / 12.0 + (double)(time.getDay() - 1) / 365.0;
 
-		if (coeff == 'g')
+			if (coeff == 'g')
 			{
 				Gnm[i_g] = c_base + c_dot * t;
 				i_g++;
+				if (mm == 0) // there are no "h n 0" row in the file 
+				{
+					Hnm[i_h] = 0.0;
+					i_h++;
+				}
 			}
 			if (coeff == 'h')
 			{

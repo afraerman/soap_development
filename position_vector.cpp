@@ -337,16 +337,18 @@ PositionVector mul(const Matrix& m, const PositionVector& v)
 {
 	if (m.getColumns() != v.length())
 	{
-		std::cout << "Can not multiply matrix (" << m.getRows() << ", " << m.getColumns() << ") and vector (" << v.length() << ")" << std::endl;
+		std::cout << "\033[31m#26 Can not multiply matrix (" << m.getRows() << ", " << m.getColumns() << ") and vector (" << v.length() << ")\033[0m" << std::endl;
+		std::exit(EXIT_FAILURE);
 		return PositionVector();
 	}
-	std::vector<double> vv(m.getRows(), 0);
+	//std::vector<double> vv(m.getRows(), 0);
+	PositionVector vv(m.getRows());
 	for (int i = 0; i < m.getRows(); i++)
 	{
 		for (int j = 0; j < m.getColumns(); j++)
 		{
-			vv[i] += m.getValues()[i][j] * v.getValues()[j];
+			vv[i] += m[i][j] * v[j];
 		}
 	}
-	return PositionVector(vv);
+	return vv;
 }

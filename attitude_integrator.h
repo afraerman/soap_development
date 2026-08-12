@@ -6,7 +6,7 @@
  * "Quaternion Variational Integrators for Spacecraft Dynamics"
  */
 
-class AttitudeIntegrator: public Integrator
+class AttitudeIntegrator: public virtual Integrator
 {
 private:
 	int ntrial;

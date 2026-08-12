@@ -1,4 +1,4 @@
-#include "stdafx.h"
+ #include "stdafx.h"
 
 void quickstart();
 void multiple_satellites();
@@ -32,15 +32,16 @@ void quickstart()
 	double interval;
 	double step;
 	double output_step;
+	bool screen_check = true;
 	
-	if (Input::read_json_file(input_filename, sat, time, interval, step, output_step))
+	if (Input::read_json_file(input_filename, sat, time, interval, step, output_step, screen_check))
 	{
 		//std::cerr << "\033[31m#O_INPUT Smth went wrong while reading file " << input_filename << "\033[0m" << std::endl;
 		return;
 	}
 
-	FullMotionIntegrator fullmotion(sat, time, interval, step, output_step, false);
-	fullmotion.AttitudeIntegrator::integrate();
+	FullMotionIntegrator fullmotion(sat, time, interval, step, output_step, false, screen_check);
+	fullmotion.integrate();
 
 	return;
 }
@@ -66,12 +67,12 @@ void multiple_satellites()
 	double interval;
 	double step;
 	double output_step;
-	
+	bool screen_check = true;
 
 	for (auto filename : filenames)
 	{
 		
-		if (Input::read_json_file(filename, sat, time, interval, step, output_step))
+		if (Input::read_json_file(filename, sat, time, interval, step, output_step, screen_check))
 		{
 			std::cout << "Smth went wrong while reading file " << input_filename << std::endl;
 			return;

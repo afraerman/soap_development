@@ -1,5 +1,5 @@
 #pragma once
-class OrbitIntegrator : public Integrator
+class OrbitIntegrator : public virtual Integrator
 {
 private:
 	Time end_time;

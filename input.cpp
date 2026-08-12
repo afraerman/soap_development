@@ -965,7 +965,7 @@ int Input::read_vtk_file(const std::string& filename, std::vector<Polygon>& poly
 	return 0;
 }
 
-int Input::read_json_file(const std::string& filename, Satellite* sat, Time* time, double& interval, double& step, double& ost)
+int Input::read_json_file(const std::string& filename, Satellite* sat, Time* time, double& interval, double& step, double& ost, bool& screen_check)
 {
 	std::ifstream data_file(filename, std::ifstream::binary);
 	if (!data_file.is_open())
@@ -1072,6 +1072,26 @@ int Input::read_json_file(const std::string& filename, Satellite* sat, Time* tim
 		catch (...)
 		{
 			std::cerr << "\033[31m#1121_orbit_file Invalid value of orbit filename " << simulation["orbit_file"] << "\033[0m\n";
+			return 1;
+		}
+	}
+	if (simulation.isMember("screen_check") && !(simulation["screen_check"].isNull()))
+	{
+		try
+		{
+			std::string str_screen_check = simulation["screen_check"].asString();
+			if (str_screen_check == "true")
+			{
+				screen_check = true;
+			}
+			else
+			{
+				screen_check = false;
+			}
+		}
+		catch (...)
+		{
+			std::cerr << "\033[31m#1161 Unable to resolve screen check value " << simulation["screen_check"] << " as bool\033[0m\n";
 			return 1;
 		}
 	}
@@ -1184,7 +1204,7 @@ int Input::read_json_file(const std::string& filename, Satellite* sat, Time* tim
 	/* --------------------------------- GEOMETRY (SURFACE) -------------------------------*/
 	auto geometry = data["geometry"];
 
-	if (geometry.isMember("vtk_file") && !geometry["vkt_file"].isNull())
+	if (geometry.isMember("vtk_file") && !geometry["vtk_file"].isNull())
 	{
 		parameters_dict["Geometry"]["vtk_file"] = true;
 
@@ -1197,7 +1217,7 @@ int Input::read_json_file(const std::string& filename, Satellite* sat, Time* tim
 		}
 		catch (...)
 		{
-			std::cerr << "\033[31m#1341_vkt_file Invalid vtk_filename " << geometry["vtk_file"] << "\033[0m\n";
+			std::cerr << "\033[31m#1341_vtk_file Invalid vtk_filename " << geometry["vtk_file"] << "\033[0m\n";
 			return 1;
 		}
 		
@@ -1674,7 +1694,7 @@ int Input::read_json_file(const std::string& filename, Satellite* sat, Time* tim
 					}
 				}
 				sat->setThrusters(thrusters);
-				sat->setMass(sat->getMass() + mass);
+				sat->setMass(sat->getMass() + total_mass);
 			}
 			catch (const std::exception& e)
 			{
@@ -1735,7 +1755,7 @@ int Input::read_json_file(const std::string& filename, Satellite* sat, Time* tim
 					}
 				}
 				sat->setCorrectionThrusters(thrusters);
-				sat->setMass(sat->getMass() + mass);
+				sat->setMass(sat->getMass() + total_mass);
 			}
 			catch (const std::exception& e)
 			{
@@ -1758,7 +1778,7 @@ int Input::read_json_file(const std::string& filename, Satellite* sat, Time* tim
 			try
 			{
 				first = (char)control_systems["control_order"]["first"].asCString()[0];
-				if ((first != '0') && (first != 'r') && (first != 'g')) throw std::runtime_error("");
+				if ((first != '0') && (first != 'r') && (first != 'g') && (first != 'm')) throw std::runtime_error("");
 			}
 			catch (...)
 			{
@@ -1776,7 +1796,7 @@ int Input::read_json_file(const std::string& filename, Satellite* sat, Time* tim
 			try
 			{
 				second = (char)control_systems["control_order"]["second"].asCString()[0];
-				if ((second != '0') && (second != 'r') && (second != 'g')) throw std::runtime_error("");
+				if ((second != '0') && (second != 'r') && (second != 'g') && (second != 'm')) throw std::runtime_error("");
 			}
 			catch (...)
 			{
@@ -2047,7 +2067,7 @@ int Input::read_json_file(const std::string& filename, Satellite* sat, Time* tim
 	{
 		parameters_dict["Attitude_modes"]["scan_motion"] = true;
 		int count;
-		if (attitude_modes["slew_motion"].isMember("count") && !attitude_modes["slew_motion"]["count"].isNull())
+		if (attitude_modes["scan_motion"].isMember("count") && !attitude_modes["scan_motion"]["count"].isNull())
 		{
 			try
 			{
@@ -2390,13 +2410,25 @@ int Input::read_json_file(const std::string& filename, Satellite* sat, Time* tim
 	}
 
 	std::cout << "\033[32mDone reading json file\033[0m" << std::endl;
-	input_statistics();
 
-	char ans;
-	std::cout << "Do you wish to continue modeling with this set of parameters Y/N? ";
-	std::cin >> ans;
-	if ((ans != 'Y') && (ans != 'y')) return 1;
+	if (simulation.isMember("input_statistics") && !simulation["input_statistics"].isNull())
+	{
+		try
+		{
+			if (simulation["input_statistics"].asString() == "true")
+			{
+				input_statistics();
+				char ans;
+				std::cout << "Do you wish to continue modeling with this set of parameters Y/N? ";
+				std::cin >> ans;
+				if ((ans != 'Y') && (ans != 'y')) return 1;
+			}
+		}
+		catch(...)
+		{
 
+		}
+	}
 	return 0;
 }
 

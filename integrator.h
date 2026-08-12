@@ -12,6 +12,8 @@ private:
 	double elapsed_time;
 
 	bool from_the_start;
+
+	bool enable_screen_check;
 	
 	void make_ephemeris_header(std::ofstream&);
 	void make_telemetry_header(std::ofstream&);
@@ -34,7 +36,8 @@ public:
 	/// @param output_step Step of output ephemeris [sec]
 	/// @param autostep Automatic (true) or fixed (false) integration step
 	/// @param tolerance Tolerance of calculations (if autostep)
-	Integrator(Satellite* satellite, Time* time, double interval, double step = -1.0, double output_step = 0.0, bool autostep = true, double tolerance = 1e-5);
+	/// @param screen_checl Flag for screen check while integrating
+	Integrator(Satellite* satellite, Time* time, double interval, double step = -1.0, double output_step = 0.0, bool autostep = true, double tolerance = 1e-5, bool screen_check = true);
 
 	double getInterval();
 	Satellite* getSatellite();
@@ -45,6 +48,7 @@ public:
 	void setInterval(double interval);
 	
 	void integrate(std::string savefilename = "");
+
 
 	~Integrator();
 };

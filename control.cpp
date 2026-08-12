@@ -517,6 +517,7 @@ PositionVector Control::combineReactionWheelsBlockMomentum(const PositionVector&
         std::cerr << "\033[31m#21 NO PLAN FOR COMBINING " << momentums.length() << " REACTION WHEELS\033[0m" << std::endl;
         std::exit(EXIT_FAILURE);
         return PositionVector({0.0, 0.0, 0.0});
+        //throw std::runtime_error("");
     }
 
     if (apex == "X")

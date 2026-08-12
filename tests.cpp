@@ -577,9 +577,10 @@ void Test::overlapModesTest()
 	double interval;
 	double step;
 	double os;
+	bool screen_check = true;
 	std::vector<std::vector<Time>> scans, stops;
 
-	if (Input::read_json_file(filename, sat, time, interval, step, os))
+	if (Input::read_json_file(filename, sat, time, interval, step, os, screen_check))
 	{
 		scans = sat->getScanTimes();
 		stops = sat->getStopTimes();
@@ -689,8 +690,9 @@ void Test::autostepTest()
 	double interval;
 	double step;
 	double output_step;
+	bool screen_check = true;
 	
-	if (Input::read_json_file(input_filename, sat, time, interval, step, output_step))
+	if (Input::read_json_file(input_filename, sat, time, interval, step, output_step, screen_check))
 	{
 		std::cout << "Smth went wrong while reading file " << input_filename << std::endl;
 		return;
@@ -750,8 +752,9 @@ void Test::vtkSolarPressure()
 	double interval;
 	double step;
 	double output_step;
+	bool screen_check = true;
 	
-	if (Input::read_json_file(input_filename, sat, time, interval, step, output_step))
+	if (Input::read_json_file(input_filename, sat, time, interval, step, output_step, screen_check))
 	{
 		std::cout << "Smth went wrong while reading file " << input_filename << std::endl;
 		return;
@@ -1022,8 +1025,9 @@ void Test::inputJsonTest()
 	double interval;
 	double step;
 	double os;
+	bool screen_check = true;
 
-	if (Input::read_json_file("/media/alexey/Disk/Diploma/json_test.txt", sat, time, interval, step, os))
+	if (Input::read_json_file("/media/alexey/Disk/Diploma/json_test.txt", sat, time, interval, step, os, screen_check))
 	{
 		return;
 	}
@@ -1190,8 +1194,9 @@ void Test::fingMmZeroSolarPressureAttitude()
 	double interval;
 	double step;
 	double output_step;
+	bool screen_check = true;
 	
-	if (Input::read_json_file(input_filename, sat, time, interval, step, output_step))
+	if (Input::read_json_file(input_filename, sat, time, interval, step, output_step, screen_check))
 	{
 		std::cout << "Smth went wrong while reading file " << input_filename << std::endl;
 		return;
