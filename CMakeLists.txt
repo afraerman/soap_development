@@ -1,11 +1,14 @@
 cmake_minimum_required(VERSION 3.10)
 project(soap)
 
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 add_executable(${PROJECT_NAME}
 astrometry.cpp
 attitude_controller.cpp
 attitude_integrator.cpp
-celestial_bodies.cpp
 control.cpp
 date_time.cpp
 filenames.cpp
@@ -25,14 +28,24 @@ tests.cpp
 torques.cpp
 )
 
-find_package(jsoncpp CONFIG QUIET)
-if(jsoncpp_FOUND)
-    target_link_libraries(${PROJECT_NAME} PRIVATE JsonCpp::JsonCpp)
+
+if(WIN32)
+    find_package(jsoncpp CONFIG REQUIRED)
+
+    target_link_libraries(${PROJECT_NAME}
+        PRIVATE
+        JsonCpp::JsonCpp
+    )
 else()
-    find_package(PkgConfig REQUIRED)
-    pkg_check_modules(JSONCPP REQUIRED jsoncpp)
-    target_link_libraries(${PROJECT_NAME} PRIVATE ${JSONCPP_LIBRARIES})
-    target_include_directories(${PROJECT_NAME} PRIVATE ${JSONCPP_INCLUDE_DIRS})
+    find_package(jsoncpp CONFIG QUIET)
+    if(jsoncpp_FOUND)
+        target_link_libraries(${PROJECT_NAME} PRIVATE JsonCpp::JsonCpp)
+    else()
+        find_package(PkgConfig REQUIRED)
+        pkg_check_modules(JSONCPP REQUIRED jsoncpp)
+        target_link_libraries(${PROJECT_NAME} PRIVATE ${JSONCPP_LIBRARIES})
+        target_include_directories(${PROJECT_NAME} PRIVATE ${JSONCPP_INCLUDE_DIRS})
+    endif()
 endif()
 
 find_path(SOAP_JSON_H_DIR json.h PATH_SUFFIXES json HINTS ${JSONCPP_INCLUDE_DIRS})
@@ -48,6 +61,12 @@ FetchContent_Declare(SRP
     GIT_SHALLOW    TRUE)
 
 FetchContent_MakeAvailable(SRP)
+
+
+target_link_libraries(${PROJECT_NAME}
+    PRIVATE
+    srp
+)
 
 if(WIN32)
     set(SOAP_CSPICE "${CMAKE_CURRENT_SOURCE_DIR}/libs/cspice.lib")
@@ -66,6 +85,11 @@ endforeach()
 target_link_libraries(${PROJECT_NAME} PRIVATE ${SOAP_CSPICE} ${SOAP_SOFA})
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+target_compile_definitions(${PROJECT_NAME}
+    PRIVATE
+    SOAP_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/Files"
+)
 
 if(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE /permissive- /bigobj)

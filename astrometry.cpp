@@ -1,9 +1,9 @@
 #include "stdafx.h"
 
-std::string Astrometry::eopfilename = "../Files/eop.txt";
-std::string Astrometry::tlsfilename = "../Files/naif0012.tls";
-std::string Astrometry::ephfilename = "../Files/de440.bsp";
-std::string Astrometry::gmfilename = "../Files/gm_de440.tpc";
+std::string Astrometry::eopfilename = std::string(SOAP_DATA_DIR) + "/eop.txt";
+std::string Astrometry::tlsfilename = std::string(SOAP_DATA_DIR) + "/naif0012.tls";
+std::string Astrometry::ephfilename = std::string(SOAP_DATA_DIR) + "/de440.bsp";
+std::string Astrometry::gmfilename =  std::string(SOAP_DATA_DIR) + "/gm_de440.tpc";
 int Astrometry::order = 7;
 int Astrometry::_mjd = 0;
 Matrix Astrometry::duts = Matrix(order, 2);

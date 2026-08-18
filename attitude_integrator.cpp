@@ -666,13 +666,15 @@ void AttitudeIntegrator::integrationMethod(Satellite& sat, Time& time, double st
 
 		phi = phi + momentum;
 	}
-
-	compute_momentum(sat.getInertiaTensor(), gyrostats_momentum, step, '-');
-	sat.setUpdateAngularMomentum(momentum - gyrostats_momentum);
+	
 	
 
+	compute_momentum(sat.getInertiaTensor(), gyrostats_momentum, step, '-');
+	sat.setUpdateAngularMomentum(momentum - gyrostats_momentum);	
+
 	sat.setThrustersMomentum(thrusters_momentum, step);
-	sat.setTargetFuel(sat.getThrustersMomentum().sum());
+	if (mode != "none") sat.setTargetFuel(sat.getThrustersMomentum().sum());
+
 
 	if (phi.dot(phi) > 1.0 - 1e-5)
 	{

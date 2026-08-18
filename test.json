@@ -3,7 +3,8 @@
     "start_time": "2026-02-18T00:00:00.0000",
     "interval": 5400,
     "step": 1.0,
-    "output_step": 1.0
+    "output_step": 1.0,
+    "input_statistics": true
   },
   "spacecraft": {
     "state_vector": [6900, 0.0, 0.0, 0.0, 7.6, 0.0],
@@ -183,11 +184,7 @@
     "save_path": "./ephemeris.txt",
     "telemetry_path": "./telemetry.txt",
     "output_info_path": "./output_info.txt"
-    },
-  "input": {
-    "tls_path": "../Files/naif0012.tls",
-    "eop_path": "../Files/eop.txt"
-  }
+    }
   },
   "backup":
   {

@@ -1,6 +1,6 @@
 #include<stdafx.h>
 
-std::string Forces::egmfilename = "../Files/EGM2008.dat";
+std::string Forces::egmfilename = std::string(SOAP_DATA_DIR) + "/EGM2008.dat";
 int Forces::gravity_order = 30;
 Matrix Forces::order;
 Matrix Forces::Ps = Matrix();

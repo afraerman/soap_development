@@ -1255,7 +1255,7 @@ void Test::checkNan()
 
 void Test::srplibTest()
 {
-	SRPEngine engine("/media/alexey/Disk1/asc/solar_pressure/srp_test_prjct/data_hdf");        // scans folder for .h5 files
+	SRPEngine engine("C:/Users/alexey/Desktop");        // scans folder for .h5 files
 
 
     engine.setSunDirection(1.0, 0.0, 0.0);      // sun along +X (body frame)

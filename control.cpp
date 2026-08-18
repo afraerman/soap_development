@@ -629,7 +629,7 @@ double Control::getMinSlewTime(const Satellite& sat, double angle, const Positio
 
     // all reaction wheels have mumentums in thier limit range
     bool condition = ((-1.0 * limit <= rwbs[0] and rwbs[0] <= limit) && (-1.0 * limit <= rwbs[1] and rwbs[1] <= limit) &&
-        (-1.0 * limit <= rwbs[2] and rwbs[2] <= limit) && (-1.0 * limit <= rwbs[3] and rwbs[4] <= limit));
+        (-1.0 * limit <= rwbs[2] and rwbs[2] <= limit) && (-1.0 * limit <= rwbs[3] and rwbs[3] <= limit));
 
     // search for right boundary
     while (!condition)
@@ -639,7 +639,7 @@ double Control::getMinSlewTime(const Satellite& sat, double angle, const Positio
         torque_part = PositionVector({0.0, 0.0, 0.0, 0.0});
         rwbs = const_part / slew_time + torque_part;
         condition = ((-1.0 * limit <= rwbs[0] and rwbs[0] <= limit) && (-1.0 * limit <= rwbs[1] and rwbs[1] <= limit) &&
-            (-1.0 * limit <= rwbs[2] and rwbs[2] <= limit) && (-1.0 * limit <= rwbs[3] and rwbs[4] <= limit));
+            (-1.0 * limit <= rwbs[2] and rwbs[2] <= limit) && (-1.0 * limit <= rwbs[3] and rwbs[3] <= limit));
     }
     double r = slew_time;
 
@@ -651,7 +651,7 @@ double Control::getMinSlewTime(const Satellite& sat, double angle, const Positio
         torque_part = PositionVector({0.0, 0.0, 0.0, 0.0});
         rwbs = const_part / slew_time + torque_part;
         condition = ((-1.0 * limit <= rwbs[0] and rwbs[0] <= limit) && (-1.0 * limit <= rwbs[1] and rwbs[1] <= limit) &&
-            (-1.0 * limit <= rwbs[2] and rwbs[2] <= limit) && (-1.0 * limit <= rwbs[3] and rwbs[4] <= limit));
+            (-1.0 * limit <= rwbs[2] and rwbs[2] <= limit) && (-1.0 * limit <= rwbs[3] and rwbs[3] <= limit));
     }
     double l = slew_time;
 

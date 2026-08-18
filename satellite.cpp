@@ -233,7 +233,7 @@ PositionVector Satellite::getThrustersMomentum() const
 	*/
 
 	// давайте вернём вектор расхода толпива каждым двигателем
-	PositionVector mass_distribution(std::vector<double>((int)thrusters.size(), 0.));
+	PositionVector mass_distribution((int)thrusters.size());
 	for (int i = 0; i < (int)thrusters.size(); i++)
 	{
 		mass_distribution[i] = thrusters[i].getStoredMomentum();

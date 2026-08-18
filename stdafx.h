@@ -11,7 +11,13 @@
 #include<map>
 #include<limits>
 #include<algorithm>
-#include<jsoncpp/json/json.h>
+
+#if defined(_WIN32)
+	#include<json.h>
+#else
+	#include<jsoncpp/json/json.h>
+#endif
+
 #include<stdint.h>
 #include<./libs/sofa/sofa.h>
 #include<./libs/sofa/sofam.h>
@@ -21,8 +27,6 @@
 #include<future>
 #include<functional>
 #include<filenames.h>
-// #include<boost/math/quaternion.hpp>
-// #include<boost/math/interpolators/cardinal_cubic_b_spline.hpp>
 #include<./libs/cspice/include/SpiceUsr.h>
 #include "SRPLibrary.h"
 
