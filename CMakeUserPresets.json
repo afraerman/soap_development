@@ -3,13 +3,15 @@
   "configurePresets": [
     {
       "name": "windows-vcpkg",
-      "displayName": "Windows x64 with vcpkg",
+      "displayName": "Windows x64 with vcpkg + Qt",
       "generator": "Visual Studio 17 2022",
       "architecture": "x64",
       "binaryDir": "${sourceDir}/build",
       "cacheVariables": {
-        "CMAKE_TOOLCHAIN_FILE": "C:/Users/alexey/vcpkg/scripts/buildsystems/vcpkg.cmake"
+        "CMAKE_TOOLCHAIN_FILE": "C:/Users/alexey/vcpkg/scripts/buildsystems/vcpkg.cmake",
+        "CMAKE_PREFIX_PATH": "D:/Qt/6.11.2/msvc2022_64",
+        "SOAP_BUILD_GUI": "ON"
+        }
       }
-    }
   ]
 }

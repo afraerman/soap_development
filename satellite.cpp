@@ -923,8 +923,7 @@ PositionVector Satellite::setControlMomentum(const PositionVector& momentum_to_c
 	else
 	{
 		std::cerr << "\033[31m#11_control_order No such control element " << controller  << "\033[0m" << std::endl;
-		std::exit(EXIT_FAILURE);
-		return momentum_to_compensate;
+		throw std::runtime_error("");
 	}
 	// squeeze as much momentum as I can
 	
@@ -1488,8 +1487,7 @@ void Satellite::rotateSolarPanels(const PositionVector& s)
 		else
 		{
 			std::cerr << "\033[31m#11_rai Incorrect value of rai = " << rai << " on solar panel #" << i << "\033[0m" << std::endl;
-			std::exit(EXIT_FAILURE);
-			continue;
+			throw std::runtime_error("");
 		}
 	}
 }
@@ -1549,4 +1547,8 @@ void Satellite::set_to_default()
 
 	dump_periods.clear();
 }
-Satellite::~Satellite() {}
+Satellite::~Satellite() {
+	all_modes.clear();
+	all_modes.shrink_to_fit();
+	target_index = 0;
+}

@@ -7,15 +7,38 @@ void read_old_format();
 void euler_angles();
 void solarFile();
 
-int main()
+#ifdef SOAP_WITH_QT
+int qt_main(int argc, char* argv[]);
+#endif
+
+int main(int argc, char *argv[])
 {
 	//Test::srplibTest();
 	//solarCoordinates();
-	quickstart();
+	int res = 0;
+
+	#ifdef SOAP_WITH_QT
+		res = qt_main(argc, argv);
+	#else
+		quickstart();
+	#endif
+	
 	//euler_angles();
 	//multiple_satellites();
-	return 0;
+	return res;
 }
+
+#ifdef SOAP_WITH_QT
+int qt_main(int argc, char* argv[])
+{
+	QApplication app(argc, argv);
+
+	MainWindow window;
+	window.show();
+
+	return app.exec();
+}
+#endif // SOAP_WITH_QT
 
 
 void quickstart()
@@ -41,8 +64,14 @@ void quickstart()
 	}
 
 	FullMotionIntegrator fullmotion(sat, time, interval, step, output_step, false, screen_check);
-	fullmotion.integrate();
-
+	try
+	{
+		fullmotion.integrate();
+	}
+	catch (...)
+	{
+		return;
+	}
 	return;
 }
 

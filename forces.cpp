@@ -155,8 +155,7 @@ void Forces::earthGravityForce(const PositionVector& pos, const Time& time)
 		int responce = getGravityCoefficients();
 		if (responce)
 		{
-			std::exit(EXIT_FAILURE);
-			return;
+			throw std::runtime_error("");
 		}
 		no_coefficients = false;
 	}
@@ -325,8 +324,7 @@ void Forces::solarPressureForce(Satellite& sat, const Time& time)
 	if (sat.getPolygons().size() == 0)
 	{
 		std::cerr << "\033[31m#22 No polygons given, unable to calculate solar pressure force\033[0m" << std::endl;
-		std::exit(EXIT_FAILURE);
-		return;
+		throw std::runtime_error("");
 	}
 
 	double* state = new double[3];

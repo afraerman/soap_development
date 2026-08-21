@@ -86,7 +86,7 @@ private:
 		}
 	};
 
-	static void input_statistics();
+	
 	static void require_array_of_doubles(const Json::Value& node, const std::string& path, size_t expected_size);
 	static std::vector<double> get_doubles(const Json::Value& node, const std::string& path, size_t expected_size);
 	static std::vector<Json::Value> get_parameters(const Json::Value& node, const std::string& path, size_t expected_size);
@@ -113,4 +113,8 @@ public:
 	/// @return 1 if anything goes wrong. Error 01 -- error while opening json, 1_#name -- incorrect field in json file
 	static int read_json_file(const std::string& filename, Satellite* sat, Time* time, double& interval, double& step, double& ost, bool& screen_check);
 	static int read_multiple_satellites_filenames(const std::string& filename, std::vector<std::string>& filenames);
+
+	static inline bool show_input_statistics = false;
+	static std::map < std::string, std::map<std::string, bool>> input_statistics();
+	static void reset_input_statistics();
 };

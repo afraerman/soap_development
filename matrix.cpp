@@ -78,8 +78,7 @@ Matrix Matrix::inverse() const
 	{
 		std::cerr << "\033[31m#251 Can't inverse non-square matrix: \033[0m" << std::endl;
 		std::cerr << *this << std::endl;
-		std::exit(EXIT_FAILURE);
-		return *this;
+		throw std::runtime_error("");
 	}
 	for (int i = 0; i < number_of_rows; i++)
 	{
@@ -87,8 +86,7 @@ Matrix Matrix::inverse() const
 		{
 			std::cerr << "\033[31m#252 Can't inverse matrix with 0 on the diagonal\033[0m" << std::endl;
 			std::cerr << *this << std::endl;
-			std::exit(EXIT_FAILURE);
-			return *this;
+			throw std::runtime_error("");
 		}
 		for (int j = 0; j < number_of_columns; j++)
 		{
@@ -96,8 +94,7 @@ Matrix Matrix::inverse() const
 			{
 				std::cerr << "\033[31m#251 Can't inverse non-square matrix\033[0m" << std::endl;
 				std::cerr << *this << std::endl;
-				std::exit(EXIT_FAILURE);
-				return *this;
+				throw std::runtime_error("");
 			}
 		}
 	}

@@ -338,8 +338,7 @@ PositionVector mul(const Matrix& m, const PositionVector& v)
 	if (m.getColumns() != v.length())
 	{
 		std::cout << "\033[31m#26 Can not multiply matrix (" << m.getRows() << ", " << m.getColumns() << ") and vector (" << v.length() << ")\033[0m" << std::endl;
-		std::exit(EXIT_FAILURE);
-		return PositionVector();
+		throw std::runtime_error("");
 	}
 	//std::vector<double> vv(m.getRows(), 0);
 	PositionVector vv(m.getRows());

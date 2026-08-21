@@ -44,8 +44,7 @@ void Astrometry::get_ephemeris()
 	catch (...)
 	{
 		std::cerr << "\033[31m#09 Can't open TLS file " << tlsfilename << "\033[0m\n";
-		std::exit(EXIT_FAILURE);
-		return;
+		throw std::runtime_error("");
 	}
 
 	// Ephemeris
@@ -57,8 +56,7 @@ void Astrometry::get_ephemeris()
 	catch (...)
 	{
 		std::cerr << "\033[31m#010 Can't open ephemeris file " << ephfilename << "\033[0m\n";
-		std::exit(EXIT_FAILURE);
-		return;
+		throw std::runtime_error("");
 	}
 
 	// Gravitation parameters (GM)
@@ -70,8 +68,7 @@ void Astrometry::get_ephemeris()
 	catch (...)
 	{
 		std::cerr << "\033[31m#011 Can't open gm file " << gmfilename << "\033[0m\n";
-		std::exit(EXIT_FAILURE);
-		return;
+		throw std::runtime_error("");
 	}
 }
 
@@ -172,7 +169,7 @@ void Astrometry::EOP(const Time& time)
 	else
 	{
 		std::cerr << "\033[31m#03 Can't open EOP file with filename: " << eopfilename << "\033[0m" << std::endl;
-		std::exit(EXIT_FAILURE);
+		throw std::runtime_error("");
 	}
 }
 

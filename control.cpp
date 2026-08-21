@@ -469,8 +469,7 @@ PositionVector Control::redistributeCompensationMomentum(const PositionVector& t
     }
 
     std::cerr << "\033[31m#21 NO PLAN FOR REDISTRIBUTING " << angles.length() << " REACTION WHEELS \033[0m" << std::endl;
-    std::exit(EXIT_FAILURE);
-    return PositionVector({0.0, 0.0, 0.0, 0.0});
+    throw std::runtime_error("");
 }
 
 PositionVector Control::combineReactionWheelsBlockMomentum(const PositionVector& momentums, const PositionVector& angles, const std::string& apex)
@@ -515,9 +514,7 @@ PositionVector Control::combineReactionWheelsBlockMomentum(const PositionVector&
     else
     {
         std::cerr << "\033[31m#21 NO PLAN FOR COMBINING " << momentums.length() << " REACTION WHEELS\033[0m" << std::endl;
-        std::exit(EXIT_FAILURE);
-        return PositionVector({0.0, 0.0, 0.0});
-        //throw std::runtime_error("");
+        throw std::runtime_error("");
     }
 
     if (apex == "X")
@@ -535,8 +532,7 @@ PositionVector Control::combineReactionWheelsBlockMomentum(const PositionVector&
     else
     {
         std::cerr << "\033[31m#11_apex Impossible apex " << apex << "\033[0m" << std::endl;
-        std::exit(EXIT_FAILURE);
-        return PositionVector({0.0, 0.0, 0.0});
+        throw std::runtime_error("");
     }
 }
 
@@ -602,8 +598,7 @@ Matrix Control::getTransformMatrixFromApex(const PositionVector& angles, const s
     }
 
     std::cerr << "\033[31m#23 No transofmation matrirx found for apex " << apex << "\033[0m" << std::endl;
-    std::exit(EXIT_FAILURE);
-    return Matrix(4, 3);
+    throw std::runtime_error("");
 }
 
 double Control::getMinSlewTime(const Satellite& sat, double angle, const PositionVector& axis, double step, const PositionVector& initial_momentum, const PositionVector& torque)

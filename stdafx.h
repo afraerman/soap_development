@@ -54,3 +54,10 @@
 #include<tests.h>
 
 #include<stdlib.h>
+
+#ifdef SOAP_WITH_QT
+#include<QApplication>
+#include<map_dialog.h>
+#include<qt_stream_redirector.h>
+#include<qt_main_window.h>
+#endif

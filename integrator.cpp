@@ -308,8 +308,7 @@ void Integrator::integrate(std::string savefilename)
 	if (!telemetry.is_open())
 	{
 		std::cerr << "\033[31m#013 Can't create a telemetry file with such path: " << FILENAMES::telemetry_filename << "\033[0m" << std::endl;
-		std::exit(EXIT_FAILURE);
-		return;
+		throw std::runtime_error("");
 	}
 	make_telemetry_header(telemetry);
 	
@@ -319,8 +318,7 @@ void Integrator::integrate(std::string savefilename)
 	if (!output.is_open())
 	{
 		std::cerr << "\033[31m#012 Can't create an output file with such path: " << savefilename << "\033[0m" << std::endl;
-		std::exit(EXIT_FAILURE);
-		return;
+		throw std::runtime_error("");
 	}
 	make_ephemeris_header(output);
 	output << std::setprecision(17);
@@ -549,8 +547,7 @@ void Integrator::integrate(std::string savefilename)
 	if (!outputinfo.is_open())
 	{
 		std::cerr << "\033[31m#014 Can't create an outputinfo file with filename " << FILENAMES::output_info_filename << "\033[0m\n";
-		std::exit(EXIT_FAILURE);
-		return;
+		throw std::runtime_error("");
 	}
 	std::setprecision(17);
 	//outputinfo << "START_TIME" << '\t' << "MODE" << '\t' << "FLAG" << '\t' << "DURATION" << '\t' << "MOMENTUM" << '\t' << "FUEL" << std::endl;

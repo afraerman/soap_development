@@ -19,7 +19,7 @@ void AttitudeIntegrator::compute_momentum(const Matrix& I, const PositionVector&
 	else
 	{
 		std::cerr << "\033[31mUnknown operation: " << operation << "\033[0m" << '\n';
-		std::exit(EXIT_FAILURE);
+		throw std::runtime_error("");
 	}
 }
 

@@ -967,6 +967,8 @@ int Input::read_vtk_file(const std::string& filename, std::vector<Polygon>& poly
 
 int Input::read_json_file(const std::string& filename, Satellite* sat, Time* time, double& interval, double& step, double& ost, bool& screen_check)
 {
+	FILENAMES::reset_filenames();
+
 	std::ifstream data_file(filename, std::ifstream::binary);
 	if (!data_file.is_open())
 	{
@@ -2417,11 +2419,14 @@ int Input::read_json_file(const std::string& filename, Satellite* sat, Time* tim
 		{
 			if (simulation["input_statistics"].asString() == "true")
 			{
+				/*
 				input_statistics();
 				char ans;
 				std::cout << "Do you wish to continue modeling with this set of parameters Y/N? ";
 				std::cin >> ans;
 				if ((ans != 'Y') && (ans != 'y')) return 1;
+				*/
+				show_input_statistics = true;
 			}
 		}
 		catch(...)
@@ -2433,8 +2438,9 @@ int Input::read_json_file(const std::string& filename, Satellite* sat, Time* tim
 }
 
 
-void Input::input_statistics()
+std::map<std::string, std::map<std::string, bool>> Input::input_statistics()
 {
+	/*
 	for (const auto& elem: parameters_dict)
 	{
 		std::cout << elem.first << ": " << std::endl;
@@ -2445,6 +2451,19 @@ void Input::input_statistics()
 				std::cout << "     " << "\033[32m" << std::setw(26) << param.first << "OK" << "\033[0m" << std::endl;
 			else
 				std::cout << "     " << "\033[31m" << std::setw(26) << param.first << "NOT GIVEN" << "\033[0m" << std::endl;
+		}
+	}
+	*/
+	return parameters_dict;
+}
+
+void Input::reset_input_statistics()
+{
+	for (const auto& [topic, parameters] : parameters_dict)
+	{
+		for (const auto& [key, value] : parameters)
+		{
+			parameters_dict[topic][key] = false;
 		}
 	}
 }

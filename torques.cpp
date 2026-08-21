@@ -112,8 +112,7 @@ void Torques::get_magnetic_coefficients(const Time& time)
 	}
 	else {
 		std::cerr << "\033[31m#052 Incorrect IGRF filename: " << igrffilename << "\033[0m" << std::endl;
-		std::exit(EXIT_FAILURE);
-		return;
+		throw std::runtime_error("");
 	}
 	return;
 }
@@ -123,8 +122,7 @@ void Torques::get_thrusters_activation_times()
 	if (thrustersfilename.length() == 0)
 	{
 		std::cerr << "\033[31m#061 Thrusters data file not given in the input file\033[0m" << std::endl;
-		std::exit(EXIT_FAILURE);
-		return;
+		throw std::runtime_error("");
 	}
 
 	std::ifstream thr(thrustersfilename);
@@ -143,8 +141,7 @@ void Torques::get_thrusters_activation_times()
 	else
 	{
 		std::cerr << "\033[31m#062 Incorrect thrusters data filename: " << thrustersfilename << "\033[0m" << std::endl;
-		std::exit(EXIT_FAILURE);
-		return;
+		throw std::runtime_error("");
 	}
 }
 
@@ -153,8 +150,7 @@ void Torques::get_magnets_activation_times()
 	if (magnfilename.length() == 0)
 	{
 		std::cerr << "\033[31m#071 Magnets data file not given\033[0m" << std::endl;
-		std::exit(EXIT_FAILURE);
-		return;
+		throw std::runtime_error("");
 	}
 
 	std::ifstream mag(magnfilename);
@@ -173,8 +169,7 @@ void Torques::get_magnets_activation_times()
 	else
 	{
 		std::cerr << "\033[31m#072 Incorrect magnetic toruqers data filename: " << magnfilename << "\033[0m" << std::endl;
-		std::exit(EXIT_FAILURE);
-		return;
+		throw std::runtime_error("");
 	}
 	
 
@@ -190,6 +185,7 @@ void Torques::get_magnets_activation_times()
 	else
 	{
 		std::cerr << "\033[31mIncorrect magnetic field data filename\033[0m" << std::endl;
+		throw std::runtime_error("");
 	}
 
 }
