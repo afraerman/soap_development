@@ -2419,14 +2419,27 @@ int Input::read_json_file(const std::string& filename, Satellite* sat, Time* tim
 		{
 			if (simulation["input_statistics"].asString() == "true")
 			{
-				/*
-				input_statistics();
-				char ans;
-				std::cout << "Do you wish to continue modeling with this set of parameters Y/N? ";
-				std::cin >> ans;
-				if ((ans != 'Y') && (ans != 'y')) return 1;
-				*/
-				show_input_statistics = true;
+				#ifdef SOAP_WITH_QT
+					show_input_statistics = true;
+				#else
+					
+					for (const auto& elem: parameters_dict)
+					{
+						std::cout << elem.first << ": " << std::endl;
+						std::cout << std::left;
+						for (const auto& param: elem.second)
+						{
+							if (param.second)
+								std::cout << "     " << "\033[32m" << std::setw(26) << param.first << "OK" << "\033[0m" << std::endl;
+							else
+								std::cout << "     " << "\033[31m" << std::setw(26) << param.first << "NOT GIVEN" << "\033[0m" << std::endl;
+						}
+					}
+					char ans;
+					std::cout << "Do you wish to continue modeling with this set of parameters Y/N? ";
+					std::cin >> ans;
+					if ((ans != 'Y') && (ans != 'y')) return 1;
+				#endif
 			}
 		}
 		catch(...)
@@ -2440,20 +2453,6 @@ int Input::read_json_file(const std::string& filename, Satellite* sat, Time* tim
 
 std::map<std::string, std::map<std::string, bool>> Input::input_statistics()
 {
-	/*
-	for (const auto& elem: parameters_dict)
-	{
-		std::cout << elem.first << ": " << std::endl;
-		std::cout << std::left;
-		for (const auto& param: elem.second)
-		{
-			if (param.second)
-				std::cout << "     " << "\033[32m" << std::setw(26) << param.first << "OK" << "\033[0m" << std::endl;
-			else
-				std::cout << "     " << "\033[31m" << std::setw(26) << param.first << "NOT GIVEN" << "\033[0m" << std::endl;
-		}
-	}
-	*/
 	return parameters_dict;
 }
 
