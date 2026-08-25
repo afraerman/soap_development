@@ -32,7 +32,16 @@ jobs:
           sudo apt-get install -y \
             cmake ninja-build g++ \
             libjsoncpp-dev \
-            qt6-base-dev qt6-base-dev-tools
+
+      - name: Install Qt (Linux)
+        if: runner.os == 'Linux' && matrix.gui
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.*'
+          host: linux
+          target: desktop
+          cache: true
+          set-env: true
 
       # ------------------------------------------------------------------
       # Dependencies – Windows (jsoncpp via vcpkg + Qt via install-qt-action)
@@ -40,15 +49,12 @@ jobs:
       - name: Setup vcpkg (Windows)
         if: runner.os == 'Windows'
         uses: lukka/run-vcpkg@v11
-        with:
-          vcpkgGitCommitId: '2024.11.16'   # pin a known-good version; update as needed
-          # or leave empty to use the latest
 
       - name: Install jsoncpp (Windows)
         if: runner.os == 'Windows'
         run: |
-          ${{ env.VCPKG_ROOT }}/vcpkg install jsoncpp:x64-windows
-        shell: bash
+          $ env.VCPKG_ROOT/vcpkg install jsoncpp:x64-windows
+        shell: pwsh
 
       - name: Install Qt (Windows)
         if: runner.os == 'Windows' && matrix.gui
@@ -70,8 +76,7 @@ jobs:
             -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DSOAP_BUILD_GUI=${{ matrix.gui && 'ON' || 'OFF' }} \
-            ${{ runner.os == 'Windows' && format('-DCMAKE_TOOLCHAIN_FILE={0}/scripts/buildsystems/vcpkg.cmake', env.VCPKG_ROOT) || '' }} \
-            ${{ runner.os == 'Windows' && matrix.gui && format('-DCMAKE_PREFIX_PATH={0}', env.Qt6_DIR) || '' }}
+            ${{ runner.os == 'Windows' && format('-DCMAKE_TOOLCHAIN_FILE={0}/scripts/buildsystems/vcpkg.cmake', env.VCPKG_ROOT) || '' }}
         shell: bash
 
       - name: Build
