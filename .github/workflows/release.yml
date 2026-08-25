@@ -1,0 +1,156 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*'          # triggers on tags like v1.0.0, v0.9.1, etc.
+
+permissions:
+  contents: write   # required to create the release and upload assets
+
+jobs:
+  build:
+    name: ${{ matrix.os }} – ${{ matrix.gui && 'GUI' || 'Console' }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        gui: [false, true]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ------------------------------------------------------------------
+      # Dependencies – Linux
+      # ------------------------------------------------------------------
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake ninja-build g++ \
+            libjsoncpp-dev \
+            qt6-base-dev qt6-base-dev-tools
+
+      # ------------------------------------------------------------------
+      # Dependencies – Windows (jsoncpp via vcpkg + Qt via install-qt-action)
+      # ------------------------------------------------------------------
+      - name: Setup vcpkg (Windows)
+        if: runner.os == 'Windows'
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgGitCommitId: '2024.11.16'   # pin a known-good version; update as needed
+          # or leave empty to use the latest
+
+      - name: Install jsoncpp (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          ${{ env.VCPKG_ROOT }}/vcpkg install jsoncpp:x64-windows
+        shell: bash
+
+      - name: Install Qt (Windows)
+        if: runner.os == 'Windows' && matrix.gui
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.*'                 # LTS line
+          host: windows
+          target: desktop
+          arch: win64_msvc2022_64
+          cache: true
+          set-env: true
+
+      # ------------------------------------------------------------------
+      # Configure & Build
+      # ------------------------------------------------------------------
+      - name: Configure CMake
+        run: |
+          cmake -B build \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DSOAP_BUILD_GUI=${{ matrix.gui && 'ON' || 'OFF' }} \
+            ${{ runner.os == 'Windows' && format('-DCMAKE_TOOLCHAIN_FILE={0}/scripts/buildsystems/vcpkg.cmake', env.VCPKG_ROOT) || '' }} \
+            ${{ runner.os == 'Windows' && matrix.gui && format('-DCMAKE_PREFIX_PATH={0}', env.Qt6_DIR) || '' }}
+        shell: bash
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+        shell: bash
+
+      # ------------------------------------------------------------------
+      # Package the result
+      # ------------------------------------------------------------------
+      - name: Package (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          mkdir -p dist
+          VARIANT="${{ matrix.gui && 'gui' || 'console' }}"
+          cp build/soap "dist/soap-linux-${VARIANT}"
+          # Optional: add a short README
+          echo "SOAP ${VARIANT} build for Linux (tag ${{ github.ref_name }})" > dist/README.txt
+          cd dist
+          zip -r "../soap-linux-${VARIANT}.zip" .
+        shell: bash
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          mkdir dist
+          $variant = if ("${{ matrix.gui }}" -eq "true") { "gui" } else { "console" }
+          # On multi-config generators the binary is under build/Release
+          $exe = "build/soap.exe"
+          if (-not (Test-Path $exe)) { $exe = "build/Release/soap.exe" }
+          Copy-Item $exe "dist/soap-windows-$variant.exe"
+
+          # If GUI was built, windeployqt already copied the Qt DLLs next to the exe
+          if ("${{ matrix.gui }}" -eq "true") {
+            $dir = Split-Path $exe
+            Get-ChildItem $dir -Exclude soap.exe | Copy-Item -Destination dist -Recurse -Force
+          }
+
+          Compress-Archive -Path dist\* -DestinationPath "soap-windows-$variant.zip"
+        shell: pwsh
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: soap-${{ matrix.os }}-${{ matrix.gui && 'gui' || 'console' }}
+          path: |
+            soap-*.zip
+          if-no-files-found: error
+
+  # ------------------------------------------------------------------
+  # Create the GitHub Release and attach everything
+  # ------------------------------------------------------------------
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: SOAP ${{ github.ref_name }}
+          body: |
+            ## Builds included
+
+            | Platform | Console | GUI |
+            |----------|---------|-----|
+            | Linux    | ✅      | ✅  |
+            | Windows  | ✅      | ✅  |
+
+            ### Notes
+            - Console builds do **not** require Qt.
+            - GUI builds require the Qt runtime (already bundled for Windows via windeployqt).
+            - Large data files (ephemeris `de440.bsp`, EGM2008, etc.) are **not** included – download them separately as described in the README.
+          files: artifacts/**/*.zip
+          generate_release_notes: true
+          draft: true          # set to true if you prefer to review first
+          prerelease: false
