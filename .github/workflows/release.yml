@@ -32,6 +32,7 @@ jobs:
           sudo apt-get install -y \
             cmake ninja-build g++ \
             libjsoncpp-dev \
+            libhdf5-dev \
 
       - name: Install Qt (Linux)
         if: runner.os == 'Linux' && matrix.gui
@@ -44,23 +45,26 @@ jobs:
           set-env: true
 
       # ------------------------------------------------------------------
-      # Dependencies – Windows (jsoncpp via vcpkg + Qt via install-qt-action)
+      # Windows dependencies
       # ------------------------------------------------------------------
-      - name: Setup vcpkg (Windows)
+      - name: Setup vcpkg
         if: runner.os == 'Windows'
         uses: lukka/run-vcpkg@v11
+        with:
+          # Full 40-char SHA of a recent vcpkg commit (update periodically)
+          vcpkgGitCommitId: 'ce613c41372b23b1f51333815feb3edd979d1adf'
 
-      - name: Install jsoncpp (Windows)
+      - name: Install packages with vcpkg (Windows)
         if: runner.os == 'Windows'
         run: |
-          $ env.VCPKG_ROOT/vcpkg install jsoncpp:x64-windows
-        shell: pwsh
+          ${{ env.VCPKG_ROOT }}/vcpkg install jsoncpp:x64-windows hdf5:x64-windows
+        shell: bash
 
-      - name: Install Qt (Windows)
+      - name: Install Qt (Windows, GUI only)
         if: runner.os == 'Windows' && matrix.gui
         uses: jurplel/install-qt-action@v4
         with:
-          version: '6.8.*'                 # LTS line
+          version: '6.8.*'
           host: windows
           target: desktop
           arch: win64_msvc2022_64
@@ -71,17 +75,16 @@ jobs:
       # Configure & Build
       # ------------------------------------------------------------------
       - name: Configure CMake
-        run: |
-          cmake -B build \
-            -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DSOAP_BUILD_GUI=${{ matrix.gui && 'ON' || 'OFF' }} \
-            ${{ runner.os == 'Windows' && format('-DCMAKE_TOOLCHAIN_FILE={0}/scripts/buildsystems/vcpkg.cmake', env.VCPKG_ROOT) || '' }}
-        shell: bash
-
-      - name: Build
-        run: cmake --build build --config Release --parallel
-        shell: bash
+      run: |
+        cmake -B build \
+          -G Ninja \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DSOAP_BUILD_GUI=${{ matrix.gui && 'ON' || 'OFF' }} \
+          -DSM3D_ENABLE_CUDA=OFF \
+          -DSM3D_ENABLE_OPTIX=OFF \
+          ${{ runner.os == 'Windows' && format('-DCMAKE_TOOLCHAIN_FILE={0}/scripts/buildsystems/vcpkg.cmake', env.VCPKG_ROOT) || '' }} \
+          ${{ runner.os == 'Windows' && matrix.gui && format('-DCMAKE_PREFIX_PATH={0}', env.Qt6_DIR) || '' }}
+      shell: bash
 
       # ------------------------------------------------------------------
       # Package the result
