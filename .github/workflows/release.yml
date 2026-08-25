@@ -17,7 +17,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
         gui: [false, true]
-
+        
     steps:
       - name: Checkout
         uses: actions/checkout@v4
