@@ -89,6 +89,7 @@ jobs:
               -DSOAP_BUILD_GUI=${{ matrix.gui && 'ON' || 'OFF' }} \
               -DSM3D_ENABLE_CUDA=OFF \
               -DSM3D_ENABLE_OPTIX=OFF \
+              -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
               -DCMAKE_TOOLCHAIN_FILE="vcpkg/scripts/buildsystems/vcpkg.cmake" \
               ${{ matrix.gui && format('-DCMAKE_PREFIX_PATH={0}', env.Qt6_DIR) || '' }}
           else
@@ -98,6 +99,7 @@ jobs:
               -DSOAP_BUILD_GUI=${{ matrix.gui && 'ON' || 'OFF' }} \
               -DSM3D_ENABLE_CUDA=OFF \
               -DSM3D_ENABLE_OPTIX=OFF \
+              -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
               ${{ matrix.gui && format('-DCMAKE_PREFIX_PATH={0}', env.Qt6_DIR) || '' }}
           fi
         shell: bash
