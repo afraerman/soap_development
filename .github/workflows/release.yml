@@ -60,8 +60,11 @@ jobs:
           Set-Location $vcpkgRoot
           .\bootstrap-vcpkg.bat
           .\vcpkg install jsoncpp:x64-windows hdf5:x64-windows
+          # Unix-style path for CMake
+          # $unix = $vcpkgRoot.Replace('\', '/')
+          # "root=$unix" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           $cmakePath = ($vcpkgRoot -replace '\\','/')
-          "VCPKG_ROOT=$cmakePath" | Out-File -FilePAth $env:GITHUB_ENV -Encodin utf8 -Append
+          "VCPKG_ROOT=$cmakePath" | Out-File -FilePAth $env:GITHUB_ENV -Encoding utf8 -Append
         shell: pwsh
 
       - name: Install Qt (Windows, GUI only)
