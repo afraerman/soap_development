@@ -173,8 +173,8 @@ if(WIN32 AND SOAP_WITH_QT)
     if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR (DEFINED CMAKE_CONFIGURATION_TYPES AND "$<CONFIG>" STREQUAL "Debug"))
         list(APPEND DEPLOY_ARGS --debug)
     else()
-        list(APPEND DEPLOY_ARGS --debug)
         list(APPEND DEPLOY_ARGS --release)
+        list(APPEND DEPLOY_ARGS --debug)
     endif()
 
     # Run windeployqt after the executable is built
