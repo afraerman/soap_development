@@ -54,6 +54,7 @@ jobs:
 
       - name: Bootstrap vcpkg and install packages (Windows)
         if: runner.os == 'Windows'
+        id: vcpkg
         run: |
           $vcpkgRoot = Join-Path $env:RUNNER_TEMP "vcpkg"
           git clone --depth 1 https://github.com/microsoft/vcpkg.git $vcpkgRoot
@@ -61,10 +62,9 @@ jobs:
           .\bootstrap-vcpkg.bat
           .\vcpkg install jsoncpp:x64-windows hdf5:x64-windows
           # Unix-style path for CMake
-          # $unix = $vcpkgRoot.Replace('\', '/')
-          # "root=$unix" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          $cmakePath = ($vcpkgRoot -replace '\\','/')
-          "VCPKG_ROOT=$cmakePath" | Out-File -FilePAth $env:GITHUB_ENV -Encoding utf8 -Append
+          $unix = $vcpkgRoot.Replace('\', '/')
+          "root=$unix" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          Write-Gost "vcpkg root = $unix"
         shell: pwsh
 
       - name: Install Qt (Windows, GUI only)
@@ -87,8 +87,11 @@ jobs:
       # Configure & Build
       # ------------------------------------------------------------------
       - name: Configure CMake
+        env:
+          VCPKG_ROOT: ${{ steps.vcpkg.output.root }}
         run: |
           if [ "${{ runner.os }}" = "Windows" ]; then
+            echo "Using VCPKG_ROOT=$VCPKG_ROOT"
             cmake -B build \
               -G Ninja \
               -DCMAKE_BUILD_TYPE=Release \
@@ -96,7 +99,8 @@ jobs:
               -DSM3D_ENABLE_CUDA=OFF \
               -DSM3D_ENABLE_OPTIX=OFF \
               -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
-              -DCMAKE_TOOLCHAIN_FILE="${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" \
+              -DCMAKE_TOOLCHAIN_FILE="${{ steps.vcpkg.outputs.root }}/scripts/buildsystems/vcpkg.cmake" \
+              -DVCPKG_TARGET_TRIPLET=x64-windows \
               ${{ matrix.gui && format('-DCMAKE_PREFIX_PATH={0}', env.Qt6_DIR) || '' }}
           else
             cmake -B build \
