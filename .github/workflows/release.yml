@@ -55,10 +55,13 @@ jobs:
       - name: Bootstrap vcpkg and install packages (Windows)
         if: runner.os == 'Windows'
         run: |
-          git clone --depth 1 https://github.com/microsoft/vcpkg.git vcpkg
-          Set-Location vcpkg
+          $vcpkgRoot = Join-Path $env:RUNNER_TEMP "vcpkg"
+          git clone --depth 1 https://github.com/microsoft/vcpkg.git $vcpkgRoot
+          Set-Location $vcpkgRoot
           .\bootstrap-vcpkg.bat
           .\vcpkg install jsoncpp:x64-windows hdf5:x64-windows
+          $cmakePath = ($vcpkgRoot -replace '\\','/')
+          "VCPKG_ROOT=$cmakePath" | Out-File -FilePAth $env:GITHUB_ENV -Encodin utf8 -Append
         shell: pwsh
 
       - name: Install Qt (Windows, GUI only)
@@ -90,7 +93,7 @@ jobs:
               -DSM3D_ENABLE_CUDA=OFF \
               -DSM3D_ENABLE_OPTIX=OFF \
               -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
-              -DCMAKE_TOOLCHAIN_FILE="vcpkg/scripts/buildsystems/vcpkg.cmake" \
+              -DCMAKE_TOOLCHAIN_FILE="${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" \
               ${{ matrix.gui && format('-DCMAKE_PREFIX_PATH={0}', env.Qt6_DIR) || '' }}
           else
             cmake -B build \
