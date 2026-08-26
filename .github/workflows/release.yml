@@ -55,8 +55,8 @@ jobs:
       - name: Bootstrap vcpkg and install packages (Windows)
         if: runner.os == 'Windows'
         run: |
-          git clone --depth 1 https://github.com/microsoft/vcpkg.git
-          cd vcpkg
+          git clone --depth 1 https://github.com/microsoft/vcpkg.git "${{ github.worksapce }}/vcpkg"
+          cd "${{ github.workspace }}/vcpkg"
           .\bootstrap-vcpkg.bat
           .\vcpkg install jsoncpp:x64-windows hdf5:x64-windows
           echo "VCPKG_ROOT=$pwd" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
@@ -73,19 +73,34 @@ jobs:
           cache: true
           set-env: true
 
+      # Load MSVC environment (cl.exe, link.exe, etc.)
+      - name: Setup MSVC
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
       # ------------------------------------------------------------------
       # Configure & Build
       # ------------------------------------------------------------------
       - name: Configure CMake
         run: |
-          cmake -B build \
-            -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DSOAP_BUILD_GUI=${{ matrix.gui && 'ON' || 'OFF' }} \
-            -DSM3D_ENABLE_CUDA=OFF \
-            -DSM3D_ENABLE_OPTIX=OFF \
-            ${{ runner.os == 'Windows' && format('-DCMAKE_TOOLCHAIN_FILE={0}/scripts/buildsystems/vcpkg.cmake', env.VCPKG_ROOT) || '' }} \
-            ${{ matrix.gui && format('-DCMAKE_PREFIX_PATH={0}', env.Qt6_DIR) || '' }}
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            cmake -B build \
+              -G Ninja \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DSOAP_BUILD_GUI=${{ matrix.gui && 'ON' || 'OFF' }} \
+              -DSM3D_ENABLE_CUDA=OFF \
+              -DSM3D_ENABLE_OPTIX=OFF \
+              -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake" \
+              ${{ matrix.gui && format('-DCMAKE_PREFIX_PATH={0}', env.Qt6_DIR) || '' }}
+          else
+            cmake -B build \
+              -G Ninja \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DSOAP_BUILD_GUI=${{ matrix.gui && 'ON' || 'OFF' }} \
+              -DSM3D_ENABLE_CUDA=OFF \
+              -DSM3D_ENABLE_OPTIX=OFF \
+              ${{ matrix.gui && format('-DCMAKE_PREFIX_PATH={0}', env.Qt6_DIR) || '' }}
+          fi
         shell: bash
 
       - name: Build
