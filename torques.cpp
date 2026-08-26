@@ -4,7 +4,7 @@ PositionVector Torques::torques;
 PositionVector Torques::center_of_pressure;
 PositionVector Torques::uncompensated_torque({0.0, 0.0, 0.0});
 
-std::string Torques::igrffilename = std::string(SOAP_DATA_DIR) + "/2015_2020_2025_igrf.dat";
+std::string Torques::igrffilename = FILENAMES::files_directory + "/2015_2020_2025_igrf.dat";
 std::string Torques::thrustersfilename = "/media/alexey/Disk/Diploma/gracefo/thrusters_torques_2019_01_01.txt";
 std::string Torques::magnfilename = "/media/alexey/Disk/Diploma/gracefo/magnets_2019_01_01.txt";
 int Torques::magnetic_order = 13;

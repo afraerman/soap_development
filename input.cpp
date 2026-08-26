@@ -2375,6 +2375,17 @@ int Input::read_json_file(const std::string& filename, Satellite* sat, Time* tim
 		parameters_dict["Filenames"]["output_info_path"] = true;
 	}
 
+	if (input_filenames.isMember("files_dir") && !input_filenames["files_dir"].isNull())
+	{
+		FILENAMES::files_directory = input_filenames["files_dir"].asString();
+		Forces::setEGMfile(FILENAMES::files_directory + "/EGM2008.dat");
+		Astrometry::setEOPfile(FILENAMES::files_directory + "/eop.txt");
+		Astrometry::setTLSfile(FILENAMES::files_directory + "/naif0012.tls");
+		Astrometry::setEPHEMfile(FILENAMES::files_directory + "/de440.bsp");
+		Astrometry::setGMfile(FILENAMES::files_directory + "/gm_de440.tpc");
+		Torques::setIGRFfile(FILENAMES::files_directory + "2015_2020_2025_igrf.dat");
+	}
+
 	if (input_filenames.isMember("egm_path") && !input_filenames["egm_path"].isNull())
 	{
 		Forces::setEGMfile(input_filenames["egm_path"].asString());
