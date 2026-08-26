@@ -134,17 +134,39 @@ jobs:
 
       - name: Package (Windows)
         if: runner.os == 'Windows'
+        env:
+          VCPKG_ROOT: ${{ steps.vcpkg.outputs.root }}
         run: |
           mkdir dist
           $variant = if ("${{ matrix.gui }}" -eq "true") { "gui" } else { "console" }
           $exe = "build/soap.exe"
           if (-not (Test-Path $exe)) { $exe = "build/Release/soap.exe" }
           Copy-Item $exe "dist/soap-windows-$variant.exe"
+
+          # Qt DLLs (GUI only) -- already deployed by winddeployqt to the exe
           if ("${{ matrix.gui }}" -eq "true") {
             $dir = Split-Path $exe
             Get-ChildItem $dir -Exclude soap.exe | Copy-Item -Destination dist -Recurse -Force
           }
-          Compress-Archive -Path dist\* -DestinationPath "soap-windows-$variant.zip"
+
+          # Runtime DLLS from vcpkg (HDF5 + typical deps)
+          $bin = Join-Path $env:VCPKG_ROOT "installed/x64-windows/bin"
+          if (Test-Path $bin) {
+            $patterns = @(
+              "hdf5*.dll",
+              "zlib*.dll",
+              "szip*.dll",
+              "libsz*.dll",
+              "jsoncpp*.dll",
+              "fmt*.dll"
+            )
+            foreach ($pat in $patterns) {
+              Get-ChildItem -Path $bin -Filter $pat -ErrorAction SilentlyContinue | Copy-Item -Destination dist -Force
+            }
+          } else {
+            Write-Warning "vcpkg bin not found: $bin"
+          }
+          Compress-Archive -Path dist\* -DestinationPath "soap-windows-$variant.zip" -Force
         shell: pwsh
 
       - name: Upload artifact
