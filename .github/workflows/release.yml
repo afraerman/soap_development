@@ -47,17 +47,20 @@ jobs:
       # ------------------------------------------------------------------
       # Dependencies – Windows
       # ------------------------------------------------------------------
-      - name: Setup vcpkg
+      - name: Install Ninja (Windows)
         if: runner.os == 'Windows'
-        uses: lukka/run-vcpkg@v11
-        with:
-          vcpkgGitCommitId: 'ce613c41372b23b1f51333815feb3edd979d1adf'
+        run: choco install ninja -y
+        shell: pwsh
 
-      - name: Install packages with vcpkg (Windows)
+      - name: Bootstrap vcpkg and install packages (Windows)
         if: runner.os == 'Windows'
         run: |
-          ${{ env.VCPKG_ROOT }}/vcpkg install jsoncpp:x64-windows hdf5:x64-windows
-        shell: bash
+          git clone --depth 1 https://github.com/microsoft/vcpkg.git
+          cd vcpkg
+          .\bootstrap-vcpkg.bat
+          .\vcpkg install jsoncpp:x64-windows hdf5:x64-windows
+          echo "VCPKG_ROOT=$pwd" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        shell: pwsh
 
       - name: Install Qt (Windows, GUI only)
         if: runner.os == 'Windows' && matrix.gui
@@ -157,5 +160,5 @@ jobs:
             - Large data files (ephemeris `de440.bsp`, EGM2008, etc.) are **not** included – download them separately as described in the README.
           files: artifacts/**/*.zip
           generate_release_notes: true
-          draft: true
+          draft: false
           prerelease: false
