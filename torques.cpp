@@ -727,3 +727,8 @@ PositionVector Torques::getCenterOfPressure()
 {
 	return center_of_pressure;
 }
+
+PositionVector Torques::getTorques()
+{
+	return torques;
+}

@@ -287,7 +287,7 @@ void Integrator::make_telemetry_header(std::ofstream& os)
 	if (Torques::account_for_solar_pressure)
 	{
 		os << "\t\t- center_of_pressure:\n";
-		os << "\t\t\tcomment: " << column << "th column\n";
+		os << "\t\t\tcomment: " << column << "th - " << column + 2 << "th columns\n";
 		os << "\t\t\tdescription: center of solar pressure\n";
 		os << "\t\t\tunits: meters\n";
 		column++;
@@ -447,7 +447,7 @@ void Integrator::integrate(std::string savefilename)
 				output_time += output_step;
 			}
 
-			telemetry << *time << '\t' << Torques::allTorques(*satellite, *time) << '\t';
+			telemetry << *time << '\t' << Torques::getTorques() << '\t';
 			// если есть блок маховиков
 			if ((Control::getControlOrder()[0] == 'r') || (Control::getControlOrder()[1] == 'r'))
 			{
@@ -509,7 +509,7 @@ void Integrator::integrate(std::string savefilename)
 			
 			if (satellite->make_telemetry)
 			{
-				telemetry << *time << '\t' << Torques::allTorques(*satellite, *time) << '\t';
+				telemetry << *time << '\t' << Torques::getTorques() << '\t';
 				// если есть блок маховиков
 				if ((Control::getControlOrder()[0] == 'r') || (Control::getControlOrder()[1] == 'r'))
 				{

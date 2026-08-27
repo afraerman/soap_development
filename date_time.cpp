@@ -173,33 +173,48 @@ Time Time::operator+(const double dt) const
 	double utc1, utc2, fd;
 	int ye, mo, da;
 
-	iauDtf2d("utc", year, month, day, hours, minutes, seconds, &utc1, &utc2);
-
-	new_seconds += dt;
-
-	new_minutes += (int)(new_seconds) / 60;
-	new_seconds -= (double)((int)(new_seconds) / 60) * 60.0;
-
-	new_hours += new_minutes / 60;
-	new_minutes -= new_minutes / 60 * 60;
-
-	new_day += new_hours / 24;
-	new_hours -= new_hours / 24 * 24;
-
-	if (last_day != new_day)
+	iauDtf2d("UTC", year, month, day, hours, minutes, seconds, &utc1, &utc2);
+	if ((dt < 0) || (std::fabs(dt) > 30))
 	{
-		utc1 += 1.0;
-		iauJd2cal(utc1, utc2, &ye, &mo, &da, &fd);
-		if (ye != year) // new year
+		double jd = utc1 + utc2 + dt / 86400.0;
+		iauJd2cal(jd, 0.0, &new_year, &new_month, &new_day, &fd);
+		fd *= 24.0;
+		new_hours = (int)fd;
+		fd = (fd - new_hours) * 60.0;
+
+		new_minutes = (int)fd;
+		fd = (fd - new_minutes) * 60.0;
+
+		new_seconds = fd;
+	}
+	else
+	{
+		new_seconds += dt;
+
+		new_minutes += (int)(new_seconds) / 60;
+		new_seconds -= (double)((int)(new_seconds) / 60) * 60.0;
+
+		new_hours += new_minutes / 60;
+		new_minutes -= new_minutes / 60 * 60;
+
+		new_day += new_hours / 24;
+		new_hours -= new_hours / 24 * 24;
+
+		if (last_day != new_day)
 		{
-			new_year = ye;
-			new_month = 1;
-			new_day = 1;
-		}
-		else if (mo != month) // only new month
-		{
-			new_month = mo;
-			new_day = 1;
+			utc1 += 1.0;
+			iauJd2cal(utc1, utc2, &ye, &mo, &da, &fd);
+			if (ye != year) // new year
+			{
+				new_year = ye;
+				new_month = 1;
+				new_day = 1;
+			}
+			else if (mo != month) // only new month
+			{
+				new_month = mo;
+				new_day = 1;
+			}
 		}
 	}
 
@@ -225,8 +240,8 @@ double Time::operator-(const Time& t) const
 		return -1.0;
 	}*/
 	double utc11, utc12, utc21, utc22, jd1, jd2;
-	iauDtf2d("utc", year, month, day, hours, minutes, seconds, &utc11, &utc12);
-	iauDtf2d("utc", t.getYear(), t.getMonth(), t.getDay(), t.getHours(), t.getMinutes(), t.getSeconds(), &utc21, &utc22);
+	iauDtf2d("UTC", year, month, day, hours, minutes, seconds, &utc11, &utc12);
+	iauDtf2d("UTC", t.getYear(), t.getMonth(), t.getDay(), t.getHours(), t.getMinutes(), t.getSeconds(), &utc21, &utc22);
 
 	jd1 = utc11 + utc12;
 	jd2 = utc21 + utc22;
@@ -241,35 +256,54 @@ Time& Time::operator+=(const double dt)
 	double utc1, utc2, fd;
 	int ye, mo, da;
 
-	iauDtf2d("utc", year, month, day, hours, minutes, seconds, &utc1, &utc2);
-
-	seconds += dt;
-
-	minutes += (int)(seconds) / 60;
-	seconds -= (double)((int)(seconds) / 60) * 60.0;
-
-	hours += minutes / 60;
-	minutes -= minutes / 60 * 60;
-
-	day += hours / 24;
-	hours -= hours / 24 * 24;
-	
-	if (last_day != day)
+	iauDtf2d("UTC", year, month, day, hours, minutes, seconds, &utc1, &utc2);
+	if ((dt < 0) || (std::fabs(dt) > 30))
 	{
-		utc1 += 1.0;
-		iauJd2cal(utc1, utc2, &ye, &mo, &da, &fd);
-		if (ye != year) // new year
+		double jd = utc1 + utc2 + dt / 86400.0;
+		iauJd2cal(jd, 0.0, &year, &month, &day, &fd);
+
+		fd *= 24.0;
+		hours = (int)fd;
+
+		fd = (fd - hours) * 60.0;
+		minutes = (int)fd;
+
+		fd = (fd - minutes) * 60.0;
+		seconds = fd;
+
+		if (last_day != day)
+			Astrometry::EOP(*this);
+	}
+	else
+	{
+		seconds += dt;
+
+		minutes += (int)(seconds) / 60;
+		seconds -= (double)((int)(seconds) / 60) * 60.0;
+
+		hours += minutes / 60;
+		minutes -= minutes / 60 * 60;
+
+		day += hours / 24;
+		hours -= hours / 24 * 24;
+		
+		if (last_day != day)
 		{
-			year = ye;
-			month = 1;
-			day = 1;
+			utc1 += 1.0;
+			iauJd2cal(utc1, utc2, &ye, &mo, &da, &fd);
+			if (ye != year) // new year
+			{
+				year = ye;
+				month = 1;
+				day = 1;
+			}
+			else if (mo != month) // only new month
+			{
+				month = mo;
+				day = 1;
+			}
+			Astrometry::EOP(*this);
 		}
-		else if (mo != month) // only new month
-		{
-			month = mo;
-			day = 1;
-		}
-		Astrometry::EOP(*this);
 	}
 	
 	return *this;

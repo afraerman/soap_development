@@ -63,9 +63,9 @@ void quickstart()
 		return;
 	}
 
-	FullMotionIntegrator fullmotion(sat, time, interval, step, output_step, false, screen_check);
 	try
 	{
+		FullMotionIntegrator fullmotion(sat, time, interval, step, output_step, false, screen_check);
 		fullmotion.integrate();
 	}
 	catch (...)

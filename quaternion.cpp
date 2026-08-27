@@ -67,6 +67,12 @@ Quaternion::Quaternion(const PositionVector& v0, const PositionVector& v1)
 		PositionVector a = v0 / v0.norm();
 		PositionVector b = v1 / v1.norm();
 
+		if (std::fabs((a-b).norm()) < 1e-5)
+		{
+			std::cerr << "\033[31m#32 Attempt to find a quaternion for antiparallel vectors\033[0m" << std::endl;
+			throw std::runtime_error("");
+		}
+
 		double w, q_norm;
 		w = 1.0 + a.dot(b);
 		a = a.cross(b);

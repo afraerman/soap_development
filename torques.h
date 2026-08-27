@@ -100,4 +100,5 @@ public:
 	static std::vector<PositionVector> magnetic_field_data;
 
 	static PositionVector getCenterOfPressure();
+	static PositionVector getTorques();
 };
