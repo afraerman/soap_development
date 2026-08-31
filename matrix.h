@@ -6,6 +6,9 @@ private:
 	int number_of_rows;
 	std::vector<std::vector<double>> values;
 
+	int _ludecompose_d;
+	std::vector<double> _ludecompose_indx;
+
 public:
 	Matrix();
 	Matrix(int rows, int columns);
@@ -14,6 +17,8 @@ public:
 	//Matrix(const boost::math::quaternion<double>&); // local-to-global
 
 	void LUdecompose();
+	int getD();
+	std::vector<double> getIndx();
 	
 	/// works only for diagonal matrices
 	Matrix inverse() const;

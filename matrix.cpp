@@ -122,29 +122,77 @@ Matrix Matrix::transpose() const
 
 void Matrix::LUdecompose()
 {
-	if (number_of_rows != number_of_columns) std::cout << "Can not LUdecompose non-square matrix" << std::endl;
-	else
+	if (number_of_rows != number_of_columns)
 	{
-		int N = number_of_rows;
-		for (int j = 0; j < N; j++)
+		std::cerr << "\033[31m#261 Can't LUDecompose non-square matrix\033[0m" << std::endl;
+		throw std::runtime_error("");
+	}
+	const double tiny = 1.0e-40;
+	int i, imax, j, k;
+	double big, tmp;
+	_ludecompose_d = 1;
+	_ludecompose_indx = std::vector<double>(number_of_rows);
+	std::vector<double> vv(number_of_rows);
+	for (i = 0; i < number_of_rows; i++)
+	{
+		big = 0.0;
+		for (j = 0; j < number_of_rows; j++)
 		{
-			for (int i = 0; i < j + 1; i++)
+			tmp = std::fabs(values[i][j]);
+			if (tmp > big) big = tmp;
+		}
+		if (big == 0.0)
+		{
+			std::cerr << "\033[31m#262 Singular matrix in LUdecompose\033[0m" << std::endl;
+			throw std::runtime_error("");
+		}
+		vv[i] = 1.0 / big;
+	}
+	for (k = 0; k < number_of_rows; k++)
+	{
+		big = 0.0;
+		for (i = k; i < number_of_rows; i++)
+		{
+			tmp = vv[i] * std::fabs(values[i][k]);
+			if (tmp > big)
 			{
-				for (int k = 0; k < i; k++)
-				{
-					values[i][j] -= values[i][k] * values[k][j];
-				}
+				big = tmp;
+				imax = i;
 			}
-			for (int i = j + 1; i < N; i++)
+		}
+		if (k != imax)
+		{
+			for (j = 0; j < number_of_rows; j++)
 			{
-				for (int k = 0; k < j; k++)
-				{
-					values[i][j] -= values[i][k] * values[k][j];
-				}
-				values[i][j] /= values[j][j];
+				tmp = values[imax][j];
+				values[imax][j] = values[k][j];
+				values[k][j] = tmp;
+			}
+			_ludecompose_d = -1 * _ludecompose_d;
+			vv[imax] = vv[k];
+		}
+		_ludecompose_indx[k] = imax;
+		if (values[k][k] == 0.0) values[k][k] = tiny;
+
+		for (i = k + 1; i < number_of_rows; i++)
+		{
+			values[i][k] /= values[k][k];
+			tmp = values[i][k];
+			for (j = k + 1; j < number_of_rows; j++)
+			{
+				values[i][j] -= tmp * values[k][j];
 			}
 		}
 	}
+}
+
+int Matrix::getD()
+{
+	return _ludecompose_d;
+}
+std::vector<double> Matrix::getIndx()
+{
+	return _ludecompose_indx;
 }
 
 Matrix Matrix::operator*(const Matrix &m) const

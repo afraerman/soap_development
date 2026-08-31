@@ -159,34 +159,36 @@ std::vector<double> PositionVector::getValues() const
  */
 void solve(Matrix& m, PositionVector& v)
 {
-	std::vector<double> values = v.getValues();
-	if ((values.size() != m.getRows()) || (m.getColumns() != m.getRows()))
-		std::cout << "Can not solve for vector (" << values.size() << ") and matrix (" << m.getRows() << ", " << m.getColumns() << ")" << std::endl;
-	else
+	int i, ii = 0, ip, j;
+	double sum;
+	if (v.length() != m.getRows() || v.length() != m.getColumns())
 	{
-		int N = (int)values.size();
-		
-		m.LUdecompose();
-
-		for (int i = 1; i < N; i++)
-		{
-			for (int j = 0; j < i; j++)
-			{
-				values[i] -= m[i][j] * values[j];
-			}
-		}
-
-		values[N - 1] = values[N - 1] / m[N - 1][N - 1];
-		for (int i = N - 2; i > -1; i--)
-		{
-			for (int j = i + 1; j < N; j++)
-			{
-				values[i] -= m[i][j] * values[j];
-			}
-			values[i] /= m[i][i];
-		}
+		std::cerr << "\033[31m#27  Bad sizes " << v.length() << " (" << m.getRows() << ' ' << m.getColumns() << ") for solve\033[0m" << std::endl;
+		throw std::runtime_error("");
 	}
-	v = PositionVector(values);
+	PositionVector x(v.length());
+	int n = m.getRows();
+	m.LUdecompose();
+	std::vector<double> indx = m.getIndx();
+	for (i = 0; i < n; i++) x[i] = v[i];
+	for (i = 0; i < n; i++)
+	{
+		ip = indx[i];
+		sum = x[ip];
+		x[ip] = x[i];
+		if (ii != 0)
+			for (j = ii - 1; j < i; j++) sum -= m[i][j] * x[j];
+		else if (sum != 0.0)
+			ii = i + 1;
+		x[i] = sum;
+	}
+	for (i = n - 1; i >= 0; i--)
+	{
+		sum = x[i];
+		for (j = i + 1; j < n; j++) sum -= m[i][j] * x[j];
+			x[i] = sum / m[i][i];
+	}
+	for (i = 0; i < n; i++) v[i] = x[i];
 }
 
 PositionVector PositionVector::operator+(const PositionVector& v) const
