@@ -31,6 +31,7 @@ public:
 	Quaternion operator*(const Quaternion& q) const;
 	Quaternion operator-(const Quaternion& q) const;
 	PositionVector operator*(const PositionVector& v) const;
+	double operator[](const int i) const;
 	bool operator==(const Quaternion& q) const;
 	friend std::ostream& operator<<(std::ostream&, const Quaternion&);
 	~Quaternion();

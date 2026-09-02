@@ -146,7 +146,10 @@ endforeach()
 
 target_link_libraries(${PROJECT_NAME} PRIVATE ${SOAP_CSPICE} ${SOAP_SOFA})
 
-target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+set(SOAP_SOFA_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libs/sofa")
+set(SOAP_CSPICE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libs/cspice/include")
+
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${SOAP_SOFA_DIR} ${SOAP_CSPICE_DIR})
 
 target_compile_definitions(${PROJECT_NAME}
     PRIVATE
@@ -190,4 +193,64 @@ if(WIN32 AND SOAP_WITH_QT)
     set_target_properties(soap PROPERTIES
         WIN32_EXECUTABLE ON
     )
+endif()
+
+
+# -------------------------------------------------
+# Unit tests (optional)
+# -------------------------------------------------
+
+option(SOAP_BUILD_TESTS "Build unit tests" ON)
+
+if(SOAP_BUILD_TESTS)
+    message(STATUS "Building tests")
+    include(FetchContent)
+    FetchContent_Declare(
+        Catch2
+        GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+        GIT_TAG v3.16.0
+    )
+    FetchContent_MakeAvailable(Catch2)
+
+    add_executable(soap_tests
+        tests/date_time_tests.cpp
+        tests/matrix_tests.cpp
+        tests/position_vector_tests.cpp
+        tests/quaternion_tests.cpp
+
+        
+        astrometry.cpp
+        attitude_controller.cpp
+        control.cpp
+        date_time.cpp
+        filenames.cpp
+        matrix.cpp
+        polygon.cpp
+        position_vector.cpp
+        quaternion.cpp
+        reaction_wheel.cpp
+        satellite.cpp
+        state_vector.cpp
+
+    )
+    target_link_libraries(soap_tests PRIVATE
+        Catch2::Catch2WithMain
+        srp
+        ${SOAP_SOFA}
+        ${SOAP_CSPICE}
+    )
+
+    target_include_directories(soap_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${SOAP_SOFA_DIR} ${SOAP_CSPICE_DIR})
+
+    target_compile_definitions(soap_tests
+        PRIVATE
+        SOAP_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/Files"
+        SOAP_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
+    )
+
+
+    include(CTest)
+    include(Catch)
+    catch_discover_tests(soap_tests)
+
 endif()

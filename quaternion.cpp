@@ -137,6 +137,16 @@ PositionVector Quaternion::operator*(const PositionVector&v) const
 	return (2.0 * w_*w_ - 1.0) * v + 2.0 * phi.dot(v) * phi + 2.0 * w_ * phi.cross(v);
 }
 
+double Quaternion::operator[](const int i) const
+{
+	switch (i){
+		case 0: return w_;
+		case 1: return x_;
+		case 2: return y_;
+		case 3: return z_;
+		default: {std::cerr << "\033[31m#27Index " << i << " out of range for quaternion\033[0m" << std::endl; throw std::runtime_error(""); }
+}
+
 bool Quaternion::operator==(const Quaternion&q) const
 {
 	if ((w_ == q.get_w()) && (x_ == q.get_x()) && (y_ == q.get_y()) && (z_ == q.get_z()))
