@@ -145,6 +145,7 @@ double Quaternion::operator[](const int i) const
 		case 2: return y_;
 		case 3: return z_;
 		default: {std::cerr << "\033[31m#27Index " << i << " out of range for quaternion\033[0m" << std::endl; throw std::runtime_error(""); }
+	}
 }
 
 bool Quaternion::operator==(const Quaternion&q) const
