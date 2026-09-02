@@ -54,7 +54,6 @@ if(Qt6_FOUND)
         reaction_wheel.cpp
         satellite.cpp
         state_vector.cpp
-        tests.cpp
         torques.cpp
     )
 
@@ -80,7 +79,6 @@ else()
         reaction_wheel.cpp
         satellite.cpp
         state_vector.cpp
-        tests.cpp
         torques.cpp
     )
 endif()

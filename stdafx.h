@@ -51,7 +51,6 @@
 #include<attitude_integrator.h>
 #include<full_motion_integrator.h>
 #include<input.h>
-#include<tests.h>
 
 #include<stdlib.h>
 
