@@ -238,6 +238,33 @@ if(SOAP_BUILD_TESTS)
         ${SOAP_CSPICE}
     )
 
+    if(WIN32)
+    find_package(jsoncpp CONFIG REQUIRED)
+
+    target_link_libraries(soap_tests
+        PRIVATE
+        JsonCpp::JsonCpp
+    )
+    else()
+        find_package(jsoncpp CONFIG QUIET)
+        if(jsoncpp_FOUND)
+            target_link_libraries(soap_tests PRIVATE JsonCpp::JsonCpp)
+        else()
+            find_package(PkgConfig REQUIRED)
+            pkg_check_modules(JSONCPP REQUIRED jsoncpp)
+            target_link_libraries(soap_tests PRIVATE ${JSONCPP_LIBRARIES})
+            target_include_directories(soap_tests PRIVATE ${JSONCPP_INCLUDE_DIRS})
+        endif()
+    endif()
+
+    if(WIN32)
+        find_path(SOAP_JSON_H_DIR json.h PATH_SUFFIXES json HINTS ${JSONCPP_INCLUDE_DIRS})
+        if(NOT SOAP_JSON_H_DIR)
+            message(FATAL_ERROR "json.h not found. Install jsoncpp (vcpkg: 'vcpkg install jsoncpp').")
+        endif()
+        target_include_directories(soap_tests PRIVATE ${SOAP_JSON_H_DIR})
+    endif()
+
     target_include_directories(soap_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${SOAP_SOFA_DIR} ${SOAP_CSPICE_DIR})
 
     target_compile_definitions(soap_tests
