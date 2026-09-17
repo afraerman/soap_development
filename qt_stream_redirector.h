@@ -7,6 +7,7 @@
 #include <QObject>
 #include <QColor>
 #include <QRegularExpression>
+#include "log_queue.h"
 
 class QtStreamRedirector : public QObject, public std::streambuf {
     Q_OBJECT
@@ -50,7 +51,8 @@ protected:
         //processAndEmit(QString::fromLocal8Bit(s, static_cast<int>(n)));
         //return n;
         m_accumulator.append(QString::fromLocal8Bit(s, static_cast<int>(n)));
-        flushAccumulator();
+        if (m_accumulator.contains('\n'))
+            flushAccumulator();
         return n;
     }
 
@@ -75,7 +77,8 @@ private:
             
             if (matchPos > lastPos) {
                 QString textBlock = m_accumulator.mid(lastPos, matchPos - lastPos);
-                emit textReceived(textBlock, m_currentColor);
+                if (!textBlock.isEmpty())
+                    LogQueue::instance().push(textBlock, m_currentColor);
             }
             
             QString code = match.captured(1);
@@ -86,7 +89,8 @@ private:
         
         if (lastPos < m_accumulator.length()) {
             QString remainingText = m_accumulator.mid(lastPos);
-            emit textReceived(remainingText, m_currentColor);
+            if (!remainingText.isEmpty())
+                LogQueue::instance().push(remainingText, m_currentColor);
         }
 
         m_accumulator.clear();

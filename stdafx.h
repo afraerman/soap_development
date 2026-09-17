@@ -50,6 +50,7 @@
 #include<orbit_integrator.h>
 #include<attitude_integrator.h>
 #include<full_motion_integrator.h>
+#include<srp_manager.h>
 #include<input.h>
 
 #include<stdlib.h>
@@ -57,6 +58,7 @@
 #ifdef SOAP_WITH_QT
 #include<QApplication>
 #include<map_dialog.h>
+#include<log_queue.h>
 #include<qt_stream_redirector.h>
 #include<qt_main_window.h>
 #endif

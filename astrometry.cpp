@@ -14,6 +14,8 @@ Matrix Astrometry::rc2t;
 Matrix Astrometry::rc2t1;
 Matrix Astrometry::rt2c;
 
+double Astrometry::eclipse_factor_ = 0.;
+
 bool Astrometry::no_ephemeris = true;
 
 void Astrometry::setEOPfile(const std::string& filename)
@@ -72,7 +74,7 @@ void Astrometry::get_ephemeris()
 	}
 }
 
-double Astrometry::eclipse_factor(const PositionVector& sun_pos, const PositionVector& sat_pos)
+void Astrometry::eclipseFactor(const PositionVector& sun_pos, const PositionVector& sat_pos)
 {
 	double p;
 	PositionVector rv = sun_pos - sat_pos;
@@ -94,7 +96,12 @@ double Astrometry::eclipse_factor(const PositionVector& sun_pos, const PositionV
 	}
 	else p = 100.0 * R_earth_app * R_earth_app / R_sun_app / R_sun_app;
 
-	return 1.0 - p / 100.0;
+	eclipse_factor_ = 1.0 - p / 100.0;
+}
+
+double Astrometry::getEclipseFactor()
+{
+	return eclipse_factor_;
 }
 
 void Astrometry::EOP(const Time& time)

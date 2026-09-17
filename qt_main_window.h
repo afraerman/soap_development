@@ -12,6 +12,8 @@
 #include<QFileDialog>
 #include<QVBoxLayout>
 #include<QHBoxLayout>
+#include<QFutureWatcher>
+#include<QTimer>
 
 class MainWindow : public QMainWindow
 {
@@ -27,8 +29,13 @@ private slots:
     // Custom slots to handle text insertion with color
     void appendColoredText(const QString& text, const QColor& color);
 
+    void onIntegrationFinished();
+
+    void onLogTimer();
+
 private:
     void setupUi();
+    void setUiRunning(bool running);
 
     QLineEdit*  fileEdit_   = nullptr;
     QPushButton* browseBtn_ = nullptr;
@@ -36,6 +43,9 @@ private:
     QLabel*     statusLabel_= nullptr;
     QTextEdit*  resultEdit_ = nullptr;
     QPushButton* closeBtn_  = nullptr;
+    QTimer* logTimer_       = nullptr;
+
+    QFutureWatcher<void> futureWatcher_;
 };
 
 #endif

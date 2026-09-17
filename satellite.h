@@ -245,6 +245,7 @@ public:
 	void set_to_default();
 
 	void mergeAttitudeModes();
+	void resetModes();
 
 	bool make_telemetry = false;
 	

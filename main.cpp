@@ -49,15 +49,13 @@ void quickstart()
 	//input_filename = "/media/alexey/Disk1/asc/solar_pressure/simulations/mm.json";
 
 	Satellite satellite;
-	Satellite* sat = &satellite;
-	Time t;
-	Time* time = &t;
+	Time time;
 	double interval;
 	double step;
 	double output_step;
 	bool screen_check = true;
 	
-	if (Input::read_json_file(input_filename, sat, time, interval, step, output_step, screen_check))
+	if (Input::read_json_file(input_filename, &satellite, &time, interval, step, output_step, screen_check))
 	{
 		//std::cerr << "\033[31m#O_INPUT Smth went wrong while reading file " << input_filename << "\033[0m" << std::endl;
 		return;
@@ -65,8 +63,18 @@ void quickstart()
 
 	try
 	{
-		FullMotionIntegrator fullmotion(sat, time, interval, step, output_step, false, screen_check);
+		if (!satellite.getHdfFile().empty())
+		{
+			SRPManager::initSRPEngine(satellite.getHdfFile());
+			SRPManager::warmupSRP();
+		}
+		FullMotionIntegrator fullmotion(&satellite, &time, interval, step, output_step, false, screen_check);
 		fullmotion.integrate();
+
+		if (!satellite.getHdfFile().empty())
+		{
+			SRPManager::shutdown();
+		}
 	}
 	catch (...)
 	{

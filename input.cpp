@@ -1362,6 +1362,7 @@ int Input::read_json_file(const std::string& filename, Satellite* sat, Time* tim
 					}
 				}
 				parameters_dict["Geometry"]["solar_panels"] = true;
+				sat->setSolarPanels(solar_panels);
 			}
 			catch (const std::exception& e)
 			{

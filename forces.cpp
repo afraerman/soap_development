@@ -22,12 +22,24 @@ bool Forces::account_for_relativity = false;
 
 void Forces::setGravityOrder(const int go)
 {
-	gravity_order = go;
+	if (go != gravity_order)
+	{
+		gravity_order = go;
+		no_coefficients = true;
+		Cnm.clear();
+		Snm.clear();
+	}
 }
 
 void Forces::setEGMfile(const std::string& filename)
 {
-	egmfilename = filename;
+	if (filename != egmfilename)
+	{
+		egmfilename = filename;
+		no_coefficients = true;
+		Cnm.clear();
+		Snm.clear();
+	}
 }
 
 void Forces::setSolarPressureForce(const PositionVector& force)
@@ -349,7 +361,8 @@ void Forces::solarPressureForce(Satellite& sat, const Time& time)
 	sat.rotateSolarPanels(sat.getQuaternion().get_inverse() * rv);
 	//Matrix ltg = gtl.transpose();
 
-	double ef = Astrometry::eclipse_factor(sun_pos, sat.getPosition());
+	Astrometry::eclipseFactor(sun_pos, sat.getPosition());
+	double ef = Astrometry::getEclipseFactor();
 	
 	std::vector<Polygon> polygons = sat.getPolygons();
 	std::vector<Polygon> solar_panels = sat.getSolarPanels();
@@ -390,61 +403,6 @@ void Forces::solarPressureForce(Satellite& sat, const Time& time)
 	state = NULL;
 }
 
-void Forces::srpForce(Satellite& sat, const Time& time)
-{
-	if (solar_pressure_calculated)
-	{
-		forces += solar_pressure_force * 0.001 / sat.getMass(); // m/s^2 -> km/s^2
-		return;
-	}
-
-	SRPEngine engine(sat.getHdfFile());
-
-	double state[6];
-	double lt, ef;
-	PositionVector s;
-	SRPResult res;
-
-	double forces_summ = 0.0;
-
-	SpiceDouble et = time.ET();
-	spkezr_c("sun", et, "J2000", "NONE", "earth", state, &lt);
-
-	PositionVector sat_pos = sat.getPosition();
-	PositionVector sun_pos(std::vector<double>{state[0], state[1], state[2]});
-	sat.setSunPosition(sun_pos);
-	
-	s = sat_pos - sun_pos;
-	double r = s.norm();
-	s = s * (1.0 / r);
-
-	ef = Astrometry::eclipse_factor(sun_pos, sat_pos);
-	
-	Quaternion quat = sat.getQuaternion().get_inverse();
-	s = quat * s;
-
-	engine.setSunDirection(s[0], s[1], s[2]);
-	engine.setMaxReflections(2);
-
-	if (is_rtx_device_available())
-	{
-    	res = engine.compute(SRPMethod::CentroidRTX);
-	}
-	else if (is_cuda_device_available())
-	{
-    	res = engine.compute(SRPMethod::CentroidGPU);
-	}
-	else
-	{
-    	res = engine.compute(SRPMethod::CentroidCPU);
-	}
-
-	forces += PositionVector({res.total_force[0], res.total_force[1], res.total_force[2]}) * ef;
-
-	Forces::setSolarPressureCalculated(true);
-	Forces::setSolarPressureForce(PositionVector({res.total_force[0], res.total_force[1], res.total_force[2]}) * ef);
-}
-
 void Forces::solarPressureGmat(Satellite& sat, const Time& time)
 {
 	double* state = new double[3];
@@ -464,7 +422,8 @@ void Forces::solarPressureGmat(Satellite& sat, const Time& time)
 	double r = rv.norm();
 	rv = rv * (1.0 / r);
 
-	double ef = Astrometry::eclipse_factor(sun_pos, sat.getPosition());
+	Astrometry::eclipseFactor(sun_pos, sat.getPosition());
+	double ef = Astrometry::getEclipseFactor();
 
 	double Cr = 1.0; // reflectivity coeff
 	double A = 1.36; // area, m^2
@@ -491,15 +450,21 @@ PositionVector Forces::allForces(Satellite& sat, const Time& time)
 		}
 	}
 	if (account_for_outer_gravity) outerBodiesGravityForce(sat.getPosition(), time);
-	if (account_for_solar_pressure)
-	{
-		if (sat.getHdfFile() != "") srpForce(sat, time);
-		else solarPressureForce(sat, time);
-	}
 	if (account_for_solar_pressure_gmat) solarPressureGmat(sat, time);
 	
 	forces = forces + sat.getPulseAcceleration(time) / 1000.0;
 
+	if (account_for_solar_pressure)
+	{
+		if (sat.getHdfFile() != "")
+		{
+			auto res = SRPManager::getResult();
+			double ef = Astrometry::getEclipseFactor();
+
+			forces += PositionVector({res.total_force[0], res.total_force[1], res.total_force[2]}) * ef;
+		}
+		else solarPressureForce(sat, time);
+	}
 	return forces;
 }
 

@@ -9,7 +9,7 @@ option(SOAP_BUILD_GUI "Build BUI version using Qt" OFF)
 
 if(SOAP_BUILD_GUI)
     #set(CMAKE_PREFIX_PATH "D:/Qt/6.11.2/msvc2022_64")
-    find_package(Qt6 QUIET COMPONENTS Widgets)
+    find_package(Qt6 QUIET COMPONENTS Widgets Concurrent)
 
     if(Qt6_FOUND)
         message(STATUS "Building GUI version")
@@ -53,11 +53,12 @@ if(Qt6_FOUND)
         quaternion.cpp
         reaction_wheel.cpp
         satellite.cpp
+        srp_manager.cpp
         state_vector.cpp
         torques.cpp
     )
 
-    target_link_libraries(soap PRIVATE Qt6::Widgets)
+    target_link_libraries(soap PRIVATE Qt6::Widgets Qt6::Concurrent)
 
 else()
     add_executable(${PROJECT_NAME}
@@ -78,6 +79,7 @@ else()
         quaternion.cpp
         reaction_wheel.cpp
         satellite.cpp
+        srp_manager.cpp
         state_vector.cpp
         torques.cpp
     )
@@ -215,6 +217,7 @@ if(SOAP_BUILD_TESTS)
         tests/matrix_tests.cpp
         tests/position_vector_tests.cpp
         tests/quaternion_tests.cpp
+        tests/srp_manager_tests.cpp
 
         
         astrometry.cpp
@@ -228,6 +231,7 @@ if(SOAP_BUILD_TESTS)
         quaternion.cpp
         reaction_wheel.cpp
         satellite.cpp
+        srp_manager.cpp
         state_vector.cpp
 
     )

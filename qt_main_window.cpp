@@ -2,6 +2,8 @@
 
 #ifdef SOAP_WITH_QT
 
+#include<QtConcurrent>
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
@@ -13,7 +15,7 @@ MainWindow::MainWindow(QWidget *parent)
     std::cerr << std::unitbuf;
 
     setupUi();
-    setWindowTitle("C++ Calculator + Qt UI");
+    setWindowTitle("Spacecraft Orbit and Attitude Prediction Tool");
     resize(600, 450);
 }
 
@@ -55,16 +57,24 @@ void MainWindow::setupUi()
     auto* coutRedirector = new QtStreamRedirector(std::cout, Qt::white, this);
     auto* cerrRedirector = new QtStreamRedirector(std::cerr, Qt::red, this);
 
-    connect(coutRedirector, &QtStreamRedirector::textReceived, 
-            this, &MainWindow::appendColoredText, Qt::QueuedConnection);
-            
-    connect(cerrRedirector, &QtStreamRedirector::textReceived, 
-            this, &MainWindow::appendColoredText, Qt::QueuedConnection);
+    
+    logTimer_ = new QTimer(this);
+    connect(logTimer_, &QTimer::timeout, this, &MainWindow::onLogTimer);
+    logTimer_->start(40);
 
     // Connections
     connect(browseBtn_, &QPushButton::clicked, this, &MainWindow::onBrowseClicked);
     connect(runBtn_,    &QPushButton::clicked, this, &MainWindow::onRunClicked);
     connect(closeBtn_,  &QPushButton::clicked, this, &MainWindow::onCloseClicked);
+    connect(&futureWatcher_, &QFutureWatcher<void>::finished, this, &MainWindow::onIntegrationFinished);
+}
+
+void MainWindow::setUiRunning(bool running)
+{
+    runBtn_->setEnabled(!running);
+    browseBtn_->setEnabled(!running);
+    closeBtn_->setEnabled(!running);
+    statusLabel_->setText(running ? "Running integration..." : "Ready");
 }
 
 void MainWindow::appendColoredText(const QString& text, const QColor& color)
@@ -87,6 +97,32 @@ void MainWindow::appendColoredText(const QString& text, const QColor& color)
     resultEdit_->repaint();
 }
 
+void MainWindow::onLogTimer()
+{
+    auto entries = LogQueue::instance().drain();
+    if (entries.isEmpty())
+    {
+        return;
+    }
+
+    QTextCursor cursor = resultEdit_->textCursor();
+    cursor.movePosition(QTextCursor::End);
+
+    resultEdit_->setUpdatesEnabled(false); // freeze painting
+
+    for (const auto& e: entries)
+    {
+        QTextCharFormat fmt;
+        fmt.setForeground(e.color);
+        cursor.setCharFormat(fmt);
+        cursor.insertText(e.text);
+    }
+
+    resultEdit_->setTextCursor(cursor);
+    resultEdit_->setUpdatesEnabled(true);
+    resultEdit_->ensureCursorVisible();
+}
+
 void MainWindow::onBrowseClicked()
 {
     QString file = QFileDialog::getOpenFileName(
@@ -107,95 +143,123 @@ void MainWindow::onRunClicked()
         return;
     }
 
-    statusLabel_->setText("Running...");
+    // prevent double-clicks
+    if (futureWatcher_.isRunning())
+    {
+        QMessageBox::information(this, "Busy", "Integration is already running");
+        return;
+    }
+
     resultEdit_->clear();
-    QApplication::processEvents();   // keep UI responsive for tiny tasks
+    setUiRunning(true);
     
+    std::string input_filename = filename.toStdString();
+
+    
+    statusLabel_->setText("Opening " + filename);
+
+    Satellite satellite;
+    Time time;
+    double interval;
+    double step;
+    double output_step;
+    bool screen_check = true;
+
+
     try
     {
-        std::string input_filename = filename.toStdString();
-
-        statusLabel_->setText("Opening " + filename);
-
-        Satellite satellite;
-        Satellite* sat = &satellite;
-        Time t;
-        Time* time = &t;
-        double interval;
-        double step;
-        double output_step;
-        bool screen_check = true;
-        
-        if (Input::read_json_file(input_filename, sat, time, interval, step, output_step, screen_check))
+        satellite.resetModes();
+        if (Input::read_json_file(input_filename, &satellite, &time, interval, step, output_step, screen_check))
         {
+            setUiRunning(false);
+            statusLabel_->setText("Failed to read input");
             return;
         }
-
-        if (Input::show_input_statistics)
-        {
-            auto parameters_dict = Input::input_statistics();
-            
-            int number_of_rows = 0;
-            for (const auto& [section, parameters]: parameters_dict)
-            {
-                for (const auto& [key, value]: parameters)
-                {
-                    number_of_rows++;
-                }
-            }
-            MapDialog dialog_(parameters_dict, number_of_rows, this);
-
-            if (dialog_.exec() == QDialog::Accepted)
-            {
-                statusLabel_->setText("Running...");
-                FullMotionIntegrator fullmotion(sat, time, interval, step, output_step, false, screen_check);
-                try
-                {
-                    fullmotion.integrate();
-                    std::cout << "\033[32m----------INTEGRATION COMPLETE------------\033[0m" << std::endl;
-                    statusLabel_->setText("Done");
-                    Input::reset_input_statistics();
-                }
-                catch (...)
-                {
-                    statusLabel_->setText("Error. Integration is stopped");
-                    Input::reset_input_statistics();
-                }
-            }
-            else
-            {
-                std::cout << "\033[31m--Ingeration intercepted --\033[0m" << std::endl;
-                statusLabel_->setText("Done");
-                Input::reset_input_statistics();
-                return;
-            }
-        }
-
     }
     catch (...)
     {
         std::cerr << "\033[31mCouldn't make it\033[0m" << std::endl;
+        setUiRunning(false);
         statusLabel_->setText("Failed");
         return;
     }
 
-    /*
-    if (!result.success) {
-        statusLabel_->setText("Failed");
-        resultEdit_->setPlainText(QString::fromStdString(result.message));
-        return;
+    if (Input::show_input_statistics)
+    {
+        auto parameters_dict = Input::input_statistics();
+        
+        int number_of_rows = 0;
+        for (const auto& [section, parameters]: parameters_dict)
+        {
+            for (const auto& [key, value]: parameters)
+            {
+                number_of_rows++;
+            }
+        }
+        MapDialog dialog_(parameters_dict, number_of_rows, this);
+
+        if (dialog_.exec() != QDialog::Accepted)
+        {
+            std::cout << "\033[31m--Ingeration intercepted --\033[0m" << std::endl;
+            setUiRunning(false);
+            statusLabel_->setText("Canceled");
+            Input::reset_input_statistics();
+            return;
+        }
     }
 
-    statusLabel_->setText(QString::fromStdString(result.message));
+    statusLabel_->setText("Running...");
 
-    QString output;
-    output += QString("Average value: %1\n\n").arg(result.value);
-    output += "File content:\n";
-    for (const auto& line : result.lines)
-        output += QString::fromStdString(line) + '\n';
+    Satellite sat_copy = satellite;
+    Time time_copy = time;
 
-    resultEdit_->setPlainText(output);
-    */
+    QFuture<void> future = QtConcurrent::run([sat_copy, time_copy, interval, step, output_step, screen_check]() mutable
+    {
+        try
+        {
+            if (!sat_copy.getHdfFile().empty())
+            {
+                SRPManager::initSRPEngine(sat_copy.getHdfFile());
+                SRPManager::warmupSRP();
+            }
+
+            FullMotionIntegrator fullmotion(&sat_copy, &time_copy, interval, step, output_step, false, screen_check);
+            
+            fullmotion.integrate();
+            
+            if (!sat_copy.getHdfFile().empty())
+            {
+                SRPManager::shutdown();
+            }
+
+            std::cout << "\033[32m----------INTEGRATION COMPLETE------------\033[0m" << std::endl;
+            
+            //Input::reset_input_statistics();
+        }
+        catch (...)
+        {
+            //statusLabel_->setText("Error. Integration is stopped");
+            std::cerr << "\033[31mIntegration is interrupted\033[0m\n";
+        }
+
+        Input::reset_input_statistics();
+    });
+    
+    futureWatcher_.setFuture(future);
+
+}
+
+void MainWindow::onIntegrationFinished()
+{
+    setUiRunning(false);
+
+    if (futureWatcher_.isCanceled()) {
+        statusLabel_->setText("Canceled");
+    }
+    else
+    {
+        statusLabel_->setText("Done");
+    }
 }
 
 void MainWindow::onCloseClicked()

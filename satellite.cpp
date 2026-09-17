@@ -790,6 +790,13 @@ void Satellite::mergeAttitudeModes()
 	}
 }
 
+void Satellite::resetModes()
+{
+	all_modes.clear();
+	all_modes.shrink_to_fit();
+	target_index = 0;
+}
+
 void Satellite::update()
 {
 	if (need_for_update)
@@ -1548,7 +1555,4 @@ void Satellite::set_to_default()
 	dump_periods.clear();
 }
 Satellite::~Satellite() {
-	all_modes.clear();
-	all_modes.shrink_to_fit();
-	target_index = 0;
 }

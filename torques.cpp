@@ -403,7 +403,8 @@ void Torques::solar_torque(Satellite& sat, const Time& time)
 	double r = s.norm();
 	s = s * (1.0 / r);
 
-	ef = Astrometry::eclipse_factor(sun_pos, sat_pos);
+	Astrometry::eclipseFactor(sun_pos, sat_pos);
+	ef = Astrometry::getEclipseFactor();
 	
 	//boost::math::quaternion<double> quat = sat.getQuaternion();
 	Quaternion quat = sat.getQuaternion().get_inverse();
@@ -462,58 +463,6 @@ void Torques::solar_torque(Satellite& sat, const Time& time)
 	Forces::setSolarPressureForce(total_force * ef * SUN::FLUX / WORLD::SPEED_OF_LIGHT * pow(WORLD::AU / r, 2));
 }
 
-void Torques::srpTorque(Satellite& sat, const Time& time)
-{
-	SRPEngine engine(sat.getHdfFile());
-
-	double state[6];
-	double lt, ef;
-	PositionVector s, additional_torque;
-	SRPResult res;
-
-	center_of_pressure = PositionVector({0.0, 0.0, 0.0});
-	double forces_summ = 0.0;
-
-	SpiceDouble et = time.ET();
-	spkezr_c("sun", et, "J2000", "NONE", "earth", state, &lt);
-
-	PositionVector sat_pos = sat.getPosition();
-	PositionVector sun_pos(std::vector<double>{state[0], state[1], state[2]});
-	sat.setSunPosition(sun_pos);
-	
-	s = sat_pos - sun_pos;
-	double r = s.norm();
-	s = s * (1.0 / r);
-
-	ef = Astrometry::eclipse_factor(sun_pos, sat_pos);
-	
-	Quaternion quat = sat.getQuaternion().get_inverse();
-	s = quat * s;
-
-	engine.setSunDirection(s[0], s[1], s[2]);
-	engine.setMaxReflections(2);
-
-	if (is_rtx_device_available())
-	{
-    	res = engine.compute(SRPMethod::CentroidRTX);
-	}
-	else if (is_cuda_device_available())
-	{
-    	res = engine.compute(SRPMethod::CentroidGPU);
-	}
-	else
-	{
-    	res = engine.compute(SRPMethod::CentroidCPU);
-	}
-
-	additional_torque = PositionVector({res.total_moment[0], res.total_moment[1], res.total_moment[2]});
-
-	torques += additional_torque * ef;
-
-	Forces::setSolarPressureCalculated(true);
-	Forces::setSolarPressureForce(PositionVector({res.total_force[0], res.total_force[1], res.total_force[2]}) * ef);
-}
-
 void Torques::magnetic_torque(const Satellite& sat)
 {
 	double R = sat.getPosition().norm();
@@ -550,11 +499,6 @@ PositionVector Torques::allTorques(Satellite& sat, const Time& time)
 	//std::cout << "===============================" << std::endl;
 	if (account_for_earth_torque) earth_torque(sat, time);
 	//std::cout << torques << std::endl;
-	if (account_for_solar_pressure)
-	{
-		if (sat.getHdfFile() != "") srpTorque(sat, time);
-		else solar_torque(sat, time);
-	}
 	//std::cout << torques << std::endl;
 	if (account_for_magnetic_torque) magnetic_torque(sat);
 	//std::cout << "===============================" << std::endl;
@@ -564,6 +508,17 @@ PositionVector Torques::allTorques(Satellite& sat, const Time& time)
 
 	torques = torques + pulse_torque;
 
+	if (account_for_solar_pressure)
+	{
+		if (sat.getHdfFile() != "")
+		{
+			auto res = SRPManager::getResult();
+			double ef = Astrometry::getEclipseFactor();
+
+			torques += PositionVector({res.total_moment[0], res.total_moment[1], res.total_moment[2]}) * ef;
+		}
+		else solar_torque(sat, time);
+	}
 	return torques;
 }
 

@@ -16,6 +16,8 @@ private:
 	static Matrix rc2t1;
 	static Matrix rt2c;
 
+	static double eclipse_factor_;
+
 	/// @brief Performs a Lagrange interpolation
 	/// @param m Matrix of known poinst (column 0) and values (column 1)
 	/// @param x point of interpolation
@@ -37,7 +39,9 @@ public:
 	/// @param sun_pos GCRF PositionVector of the Sun
 	/// @param sat_pos GCRF PositionVector of satellite
 	/// @return percentage of Sun visible from the satellite [double]
-	static double eclipse_factor(const PositionVector& sun_pos, const PositionVector& sat_pos);
+	static void eclipseFactor(const PositionVector& sun_pos, const PositionVector& sat_pos);
+
+	static double getEclipseFactor();
 	
 	/// @brief Initialize CSpice ephemeris kernels
 	static void get_ephemeris();

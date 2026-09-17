@@ -66,7 +66,6 @@ private:
 	///
 	/// uses CSPICE ephemris
 	static void solarPressureForce(Satellite& sat, const Time& time);
-	static void srpForce(Satellite& sat, const Time& time);
 	
 	static void solarPressureGmat(Satellite& sat, const Time& time);
 

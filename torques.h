@@ -56,8 +56,6 @@ private:
 	/// uses CSPICE ephemris
 	static void solar_torque(Satellite& sat, const Time& time);
 
-	static void srpTorque(Satellite& sat, const Time& time);
-
 	// NOT IN USE
 	static void magnetic_torque(const Satellite& sat);
 
