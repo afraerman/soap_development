@@ -288,7 +288,7 @@ void Integrator::make_telemetry_header(std::ofstream& os)
 	{
 		os << "\t\t- center_of_pressure:\n";
 		os << "\t\t\tcomment: " << column << "th - " << column + 2 << "th columns\n";
-		os << "\t\t\tdescription: center of solar pressure\n";
+		os << "\t\t\tdescription: xyz coordinates of the center of solar pressure\n";
 		os << "\t\t\tunits: meters\n";
 		column++;
 	}
@@ -325,6 +325,9 @@ void Integrator::integrate(std::string savefilename)
 	telemetry << std::setprecision(17);
 	output << *time << '\t' << satellite->getPosition() << '\t' << satellite->getVelocity() << '\t' << satellite->outputQuaternion() << std::endl;
 
+	// timer start
+	auto start = std::chrono::high_resolution_clock::now();
+
 	double h = (step > 0.0) ? step : output_step; // REVISE: interval / 100.0;
 	// double t = 0.0;
 	if (autostep)
@@ -337,13 +340,16 @@ void Integrator::integrate(std::string savefilename)
 			// screen check
 			if (enable_screen_check)
 			{
-				if ((int)elapsed_time / (100 * (int)h) != (int)(elapsed_time - h) / (100 * (int)h))
+				if ((int)elapsed_time / 100 != (int)(elapsed_time - h) / 100)
 					std::cout << *time << std::endl;
 			}
 
 			// final step to match interval
 			if (elapsed_time + h > interval) h = interval - elapsed_time;
-
+			if (!var_sat1.getHdfFile().empty())
+			{
+				SRPManager::launchJob(var_sat1, var_time1);
+			}
 			integrationMethod(var_sat1, var_time1, h, from_the_start);
 			var_sat1.update();
 			if (integration_error)
@@ -363,6 +369,10 @@ void Integrator::integrate(std::string savefilename)
 
 			for (int i = 0; i < 2; i++)
 			{
+				if (!var_sat2.getHdfFile().empty())
+				{
+					SRPManager::launchJob(var_sat2, var_time2);
+				}
 				integrationMethod(var_sat2, var_time2, h, from_the_start);
 				var_sat2.update();
 				if (integration_error)
@@ -386,6 +396,10 @@ void Integrator::integrate(std::string savefilename)
 				var_sat1 = *satellite;
 				var_time1 = *time;
 				from_the_start = true;
+				if (!var_sat1.getHdfFile().empty())
+				{
+					SRPManager::launchJob(var_sat1, var_time1);
+				}
 				integrationMethod(var_sat1, var_time1, h, from_the_start);
 				var_sat1.update();
 				if (integration_error)
@@ -406,6 +420,10 @@ void Integrator::integrate(std::string savefilename)
 				
 				for (int i = 0; i < 2; i++)
 				{
+					if (!var_sat2.getHdfFile().empty())
+					{
+						SRPManager::launchJob(var_sat2, var_time2);
+					}
 					integrationMethod(var_sat2, var_time2, h, from_the_start);
 					var_sat2.update();
 					if (integration_error)
@@ -441,30 +459,33 @@ void Integrator::integrate(std::string savefilename)
 			exponent = 0.0;
 
 			// OUTPUT
-			if ((elapsed_time == output_time) || (elapsed_time == interval))
+			if ((elapsed_time >= output_time - 1e-9) || (elapsed_time >= interval - 1e-9))
 			{
 				output << *time << '\t' << satellite->getPosition() << '\t' << satellite->getVelocity() << '\t' << satellite->outputQuaternion() << std::endl;
 				output_time += output_step;
 			}
 
-			telemetry << *time << '\t' << Torques::getTorques() << '\t';
-			// если есть блок маховиков
-			if ((Control::getControlOrder()[0] == 'r') || (Control::getControlOrder()[1] == 'r'))
+			if (satellite->make_telemetry)
 			{
-				telemetry << satellite->getReactionWheelsBlockMomentum(-1) << '\t' << satellite->getReactionWheelsBlockMomentum3d() << '\t';
-			}
-			// если есть независимые маховики
-			else if ((Control::getControlOrder()[0] == 'g') || (Control::getControlOrder()[1] == 'g'))
-			{
-				telemetry <<  satellite->getGyrostatsMomentum() << '\t';
-			}
-			// если есть КМИО
-			if ((Control::getControlOrder()[0] == 'm') || (Control::getControlOrder()[1] == 'm'))
-			{
-				telemetry << satellite->getMagneticMomentum() << '\t';
-			}
+				telemetry << *time << '\t' << Torques::getTorques() << '\t';
+				// если есть блок маховиков
+				if ((Control::getControlOrder()[0] == 'r') || (Control::getControlOrder()[1] == 'r'))
+				{
+					telemetry << satellite->getReactionWheelsBlockMomentum(-1) << '\t' << satellite->getReactionWheelsBlockMomentum3d() << '\t';
+				}
+				// если есть независимые маховики
+				else if ((Control::getControlOrder()[0] == 'g') || (Control::getControlOrder()[1] == 'g'))
+				{
+					telemetry <<  satellite->getGyrostatsMomentum() << '\t';
+				}
+				// если есть КМИО
+				if ((Control::getControlOrder()[0] == 'm') || (Control::getControlOrder()[1] == 'm'))
+				{
+					telemetry << satellite->getMagneticMomentum() << '\t';
+				}
 
-			telemetry << satellite->getThrustersMomentum() << '\t' << satellite->getAngularMomentum() << std::endl;
+				telemetry << satellite->getThrustersMomentum() << '\t' << satellite->getAngularMomentum() << std::endl;
+			}
 		}
 	}
 	else
@@ -480,6 +501,11 @@ void Integrator::integrate(std::string savefilename)
 			}
 			
 			if (elapsed_time + h > interval) h = interval - elapsed_time;
+			if (!satellite->getHdfFile().empty())
+			{
+				SRPManager::launchJob(*satellite, *time);
+			}
+			
 			integrationMethod(*satellite, *time, h, from_the_start);
 			satellite->update();
 			elapsed_time -= satellite->getSetbackTime();
@@ -501,7 +527,7 @@ void Integrator::integrate(std::string savefilename)
 			
 
 			// OUTPUT
-			if (elapsed_time == output_time)
+			if (elapsed_time >= output_time - 1e-9)
 			{
 				output << *time << '\t' << satellite->getPosition() << '\t' << satellite->getVelocity() << '\t' << satellite->outputQuaternion() << std::endl;
 				output_time += output_step;
@@ -543,6 +569,11 @@ void Integrator::integrate(std::string savefilename)
 	output.close();
 	telemetry.close();
 
+	// timer stop
+	auto end = std::chrono::high_resolution_clock::now();
+
+	double duration = std::chrono::duration<double, std::milli>(end - start).count();
+
 	std::ofstream outputinfo(FILENAMES::output_info_filename);
 	if (!outputinfo.is_open())
 	{
@@ -552,6 +583,7 @@ void Integrator::integrate(std::string savefilename)
 	std::setprecision(17);
 	//outputinfo << "START_TIME" << '\t' << "MODE" << '\t' << "FLAG" << '\t' << "DURATION" << '\t' << "MOMENTUM" << '\t' << "FUEL" << std::endl;
 	//outputinfo << std::format("{:<21}    {:<4}    {:<4}    {:<17}    {:<53}    {:<17}\n", "START_TIME", "MODE", "FLAG", "DURATION", "MOMENTUM", "FUEL");
+	outputinfo << "Calculation_time " << duration << std::endl;
 	outputinfo << std::left << std::setw(25) << std::setfill(' ') << "START_TIME";
 	outputinfo << std::left << std::setw(8) << std::setfill(' ') << "MODE";
 	outputinfo << std::left << std::setw(8) << std::setfill(' ') << "FLAG";

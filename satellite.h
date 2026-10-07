@@ -22,6 +22,7 @@ private:
 	PositionVector magnetic_momentum;
 	PositionVector thrusters_momentum;
 	PositionVector sun_position;
+	int max_reflections;
 
 	// preserving attitude
 	bool counterrotate;
@@ -137,6 +138,7 @@ public:
 	std::vector<OutputInfo> getOutputInfo() const;
 	
 	std::string getHdfFile() const;
+	int getMaxReflections() const;
 
 	OutputInfo getNextTarget() const;
 	void targetFailed();
@@ -242,12 +244,16 @@ public:
 
 	void setOrbitFilename(const std::string& filename);
 
+	void setMaxReflections(const int max_refl);
+	
 	void set_to_default();
 
 	void mergeAttitudeModes();
 	void resetModes();
 
+
 	bool make_telemetry = false;
-	
+
+
 	~Satellite();
 };

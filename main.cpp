@@ -49,7 +49,9 @@ void quickstart()
 	//input_filename = "/media/alexey/Disk1/asc/solar_pressure/simulations/mm.json";
 
 	Satellite satellite;
+	//Satellite* sat = &satellite;
 	Time time;
+	//Time* time = &t;
 	double interval;
 	double step;
 	double output_step;
@@ -63,18 +65,19 @@ void quickstart()
 
 	try
 	{
+
 		if (!satellite.getHdfFile().empty())
-		{
-			SRPManager::initSRPEngine(satellite.getHdfFile());
-			SRPManager::warmupSRP();
-		}
+        {
+            SRPManager::initSRPEngine(satellite.getHdfFile());
+            SRPManager::warmupSRP();
+        }
 		FullMotionIntegrator fullmotion(&satellite, &time, interval, step, output_step, false, screen_check);
 		fullmotion.integrate();
 
 		if (!satellite.getHdfFile().empty())
-		{
-			SRPManager::shutdown();
-		}
+        {
+        	SRPManager::shutdown();
+        }
 	}
 	catch (...)
 	{

@@ -3,7 +3,8 @@
 std::unique_ptr<SRPEngine> SRPManager::srp_engine;
 bool                       SRPManager::srp_engine_ready{false};
 bool                       SRPManager::initialized_{false};
-bool                       SRPManager::srp_calculated{false};
+int                        SRPManager::srp_calculated{0};
+int                        SRPManager::steps_to_calculate{1};
 std::thread                SRPManager::worker_;
 std::mutex                 SRPManager::mutex_;
 std::condition_variable    SRPManager::cv_job_;
@@ -12,6 +13,7 @@ std::queue<SRPManager::Job> SRPManager::jobs_;
 std::optional<SRPResult>   SRPManager::result_;
 std::atomic<bool>          SRPManager::stop_{false};
 std::atomic<bool>          SRPManager::busy_{false};
+double                     SRPManager::phi0_distance_scaling{1.0};
 
 void SRPManager::initSRPEngine(const std::string& filename)
 {
@@ -21,7 +23,32 @@ void SRPManager::initSRPEngine(const std::string& filename)
 	
 	try
 	{
-		srp_engine = std::make_unique<SRPEngine>(filename);
+		std::stringstream ss_str(filename);
+		char delimiter='/';
+		std::string token, folder="";
+		std::vector<std::string> tokens;
+
+		while (getline(ss_str, token, delimiter))
+		{
+			tokens.push_back(token);
+		}
+
+		if (!tokens.empty())
+		{
+			tokens.pop_back();
+		}
+
+		for (auto& t: tokens)
+
+		{
+			folder = folder + "/" + t;
+		}
+
+		srp_engine = std::make_unique<SRPEngine>(folder);
+		srp_engine->dataset().load(filename);
+
+		g_srp_phi0 = 4.56e-6;
+
 		stop_ = false;
 		busy_ = false;
 		result_.reset();
@@ -29,6 +56,7 @@ void SRPManager::initSRPEngine(const std::string& filename)
 
 		worker_ = std::thread(&SRPManager::workerLoop);
 		initialized_ = true;
+		srp_calculated = 0;
 	}
 	catch (const std::exception &e)
 	{
@@ -73,21 +101,25 @@ void SRPManager::shutdown()
 	srp_engine_ready = false;
 }
 
-void SRPManager::launchJob(Satellite& sat, const Time& time, int max_reflections)
+void SRPManager::launchJob(Satellite& sat, const Time& time)
 {
 	if (srp_calculated)
 	{
+		srp_calculated--;
 		//forces += solar_pressure_force * 0.001 / sat.getMass(); // m/s^2 -> km/s^2
 		return;
 	}
 
-	// call to this function meand that there is hdf5_file -> init happened (as well as warm-up)
+	srp_calculated = steps_to_calculate - 1;
+
+	// call to this function means that there is hdf5_file -> init happened (as well as warm-up)
 	// SRPEngine engine(sat.getHdfFile());
 
 	double state[6];
 	double lt, ef;
 	PositionVector s;
 	SRPResult res;
+	int max_reflections = 2;
 
 	SpiceDouble et = time.ET();
 	spkezr_c("sun", et, "J2000", "NONE", "earth", state, &lt);
@@ -100,14 +132,17 @@ void SRPManager::launchJob(Satellite& sat, const Time& time, int max_reflections
 	double r = s.norm();
 	s = s * (1.0 / r);
 
+	setPhi0DistanceScaling(SUN::FLUX / WORLD::SPEED_OF_LIGHT * pow(WORLD::AU / r, 2));
+
 	Astrometry::eclipseFactor(sun_pos, sat_pos);
 	
 	Quaternion quat = sat.getQuaternion().get_inverse();
 	s = quat * s;
 
-	launchAsync(s, max_reflections);
+	if (sat.getMaxReflections() != 0)
+		max_reflections = sat.getMaxReflections();
 
-	setSrpCalculated(true);
+	launchAsync(s, max_reflections);
 }
 
 void SRPManager::launchAsync(const PositionVector& sun_direction, int max_reflections)
@@ -200,12 +235,28 @@ void SRPManager::workerLoop()
 }
 
 
-bool SRPManager::getSrpCalculated()
+
+void SRPManager::setSrpCalculated(const int state)
+{
+	srp_calculated = state;
+}
+
+void SRPManager::setHowOftenCalculate(const int dur)
+{
+	steps_to_calculate = dur;
+}
+
+int SRPManager::getSrpCalculated()
 {
 	return srp_calculated;
 }
 
-void SRPManager::setSrpCalculated(const bool state)
+double SRPManager::getPhi0DistanceScaling()
 {
-	srp_calculated = state;
+	return phi0_distance_scaling;
+}
+
+void SRPManager::setPhi0DistanceScaling(double sc)
+{
+	phi0_distance_scaling = sc;
 }

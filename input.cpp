@@ -1252,6 +1252,8 @@ int Input::read_json_file(const std::string& filename, Satellite* sat, Time* tim
 			std::string hdf5_filename = geometry["hdf5_file"].asString();
 			sat->setHdfFile(hdf5_filename);
 			parameters_dict["Geometry"]["hdf5_file"] = true;
+			//SRPManager::initSRPEngine(hdf5_filename);
+			//SRPManager::warmupSRP();
 		}
 		catch (...)
 		{
@@ -2304,6 +2306,40 @@ int Input::read_json_file(const std::string& filename, Satellite* sat, Time* tim
 		}
 	}
 
+	if (forces.isMember("solar_pressure_holds") && !forces["solar_pressure_holds"].isNull())
+	{
+		int dur;
+		if (!forces["solar_pressure_holds"].isInt())
+		{
+			std::cerr << "\033[31m#1781_solar_pressure_holds Invalid Value " << forces["solar_pressure_holds"] << " for steps duration\033[0m\n";
+			return 1;
+		}
+		dur = forces["solar_pressure_holds"].asInt();
+		if (dur <= 0)
+		{
+			std::cerr << "\033[31m#1782_solar_pressure_holds Invalid value: number of steps can't be less than 1, got " << dur << "\033[0m\n";
+			return 1;
+		}
+		SRPManager::setHowOftenCalculate(dur);
+	}
+
+	if (forces.isMember("max_reflections") && !forces["max_reflections"].isNull())
+	{
+		int max_reflections;
+		if (!forces["max_reflections"].isInt())
+		{
+			std::cerr << "\033[31m#1791_max_reflections Invalid value " << forces["max_reflections"] << " for number of reflections\033[0m\n";
+			return 1;
+		}
+		max_reflections = forces["max_reflections"].asInt();
+		if (max_reflections <= 0)
+		{
+			std::cerr << "\033[31m#1792_max_reflections Invalid value: max reflections must be a natural number, not " << max_reflections << "\033[0m\n";
+			return 1;
+		}
+		sat->setMaxReflections(max_reflections);
+	}
+
 	if (forces.isMember("gravity_torque") && !forces["gravity_torque"].isNull())
 	{
 		if (forces["gravity_torque"].asString() == "true")
@@ -2363,17 +2399,38 @@ int Input::read_json_file(const std::string& filename, Satellite* sat, Time* tim
 		FILENAMES::ephemeris_filename = output_filenames["save_path"].asString();
 		parameters_dict["Filenames"]["save_path"] = true;
 	}
+	else
+	{
+		std::stringstream ss_str(filename);
+		std::string fname;
+		std::getline(ss_str, fname, '.');
+		FILENAMES::ephemeris_filename = fname + "_ephemeris.txt";
+	}
 
 	if (output_filenames.isMember("telemetry_path") && !output_filenames["telemetry_path"].isNull())
 	{
 		FILENAMES::telemetry_filename = output_filenames["telemetry_path"].asString();
 		parameters_dict["Filenames"]["telemetry_path"] = true;
 	}
+	else
+	{
+		std::stringstream ss_str(filename);
+		std::string fname;
+		std::getline(ss_str, fname, '.');
+		FILENAMES::telemetry_filename = fname + "_telemetry.txt";
+	}
 
 	if (output_filenames.isMember("output_info_path") && !output_filenames["output_info_path"].isNull())
 	{
 		FILENAMES::output_info_filename = output_filenames["output_info_path"].asString();
 		parameters_dict["Filenames"]["output_info_path"] = true;
+	}
+	else
+	{
+		std::stringstream ss_str(filename);
+		std::string fname;
+		std::getline(ss_str, fname, '.');
+		FILENAMES::output_info_filename = fname + "_output_info.txt";
 	}
 
 	if (input_filenames.isMember("files_dir") && !input_filenames["files_dir"].isNull())
@@ -2422,6 +2479,7 @@ int Input::read_json_file(const std::string& filename, Satellite* sat, Time* tim
 		Astrometry::setGMfile(input_filenames["gm_path"].asString());
 		parameters_dict["Filenames"]["gm_path"] = true;
 	}
+
 
 	std::cout << "\033[32mDone reading json file\033[0m" << std::endl;
 

@@ -27,26 +27,26 @@ TEST_CASE("SRP Manager: Multiple results are equals", "[srp_manager]") {
     // arrange
     Satellite sat;
     sat.setPosition(PositionVector({0.0, 6900.0, 0.0}));
-    sat.setHdfFile(std::string(SOAP_SOURCE_DIR)+"/tests/");
+    sat.setHdfFile(std::string(SOAP_SOURCE_DIR)+"/tests/satellite_62.h5");
 
     Time time(2026, 9, 15, 17, 50, 0.0);
 
     FILENAMES::files_directory = std::string(SOAP_DATA_DIR);
-	Astrometry::setEOPfile(FILENAMES::files_directory + "/eop.txt");
-	Astrometry::setTLSfile(FILENAMES::files_directory + "/naif0012.tls");
-	Astrometry::setEPHEMfile(FILENAMES::files_directory + "/de440.bsp");
-	Astrometry::setGMfile(FILENAMES::files_directory + "/gm_de440.tpc");
-	
+    Astrometry::setEOPfile(FILENAMES::files_directory + "/eop.txt");
+    Astrometry::setTLSfile(FILENAMES::files_directory + "/naif0012.tls");
+    Astrometry::setEPHEMfile(FILENAMES::files_directory + "/de440.bsp");
+    Astrometry::setGMfile(FILENAMES::files_directory + "/gm_de440.tpc");
+    
     Astrometry::EOP(time);
-	Astrometry::rotationMatrices(time);
-	if (Astrometry::no_ephemeris)
-	{
-		Astrometry::get_ephemeris();
-		Astrometry::no_ephemeris = false;
-	}
+    Astrometry::rotationMatrices(time);
+    if (Astrometry::no_ephemeris)
+    {
+        Astrometry::get_ephemeris();
+        Astrometry::no_ephemeris = false;
+    }
 
     SRPManager::initSRPEngine(sat.getHdfFile());
-	SRPManager::warmupSRP();
+    SRPManager::warmupSRP();
 
     SRPManager::launchJob(sat, time);
 
@@ -56,12 +56,50 @@ TEST_CASE("SRP Manager: Multiple results are equals", "[srp_manager]") {
     // assert
     for (int i = 0; i < 5; i++)
     {
-    	auto res2 = SRPManager::getResult();
-    	for (int idx = 0; idx < 3; idx++)
-    	{
-    		REQUIRE(res.total_force[idx] == Approx(res2.total_force[idx]));
-    		REQUIRE(res.total_moment[idx] == Approx(res2.total_moment[idx]));
-    	}
+        auto res2 = SRPManager::getResult();
+        for (int idx = 0; idx < 3; idx++)
+        {
+            REQUIRE(res.total_force[idx] == Approx(res2.total_force[idx]));
+            REQUIRE(res.total_moment[idx] == Approx(res2.total_moment[idx]));
+        }
     }
+    SRPManager::shutdown();
+}
+
+TEST_CASE("SRP Manager: solar pressure holds", "[srp_manager]") {
+    Satellite sat;
+    sat.setPosition(PositionVector({0.0, 6900.0, 0.0}));
+    sat.setHdfFile(std::string(SOAP_SOURCE_DIR)+"/tests/satellite_62.h5");
+
+    Time time(2026, 9, 15, 17, 50, 0.0);
+
+    FILENAMES::files_directory = std::string(SOAP_DATA_DIR);
+    Astrometry::setEOPfile(FILENAMES::files_directory + "/eop.txt");
+    Astrometry::setTLSfile(FILENAMES::files_directory + "/naif0012.tls");
+    Astrometry::setEPHEMfile(FILENAMES::files_directory + "/de440.bsp");
+    Astrometry::setGMfile(FILENAMES::files_directory + "/gm_de440.tpc");
+    
+    Astrometry::EOP(time);
+    Astrometry::rotationMatrices(time);
+    if (Astrometry::no_ephemeris)
+    {
+        Astrometry::get_ephemeris();
+        Astrometry::no_ephemeris = false;
+    }
+
+    
+    SRPManager::setHowOftenCalculate(5);
+    SRPManager::initSRPEngine(sat.getHdfFile());
+    SRPManager::warmupSRP();
+
+    for (int i: {0, 4, 3, 2, 1, 0})
+    {
+        REQUIRE(SRPManager::getSrpCalculated() == i);
+        SRPManager::launchJob(sat, time);
+
+    }
+
+    REQUIRE(SRPManager::getSrpCalculated() == 4);
+
     SRPManager::shutdown();
 }

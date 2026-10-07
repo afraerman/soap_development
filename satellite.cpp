@@ -13,6 +13,7 @@ Satellite::Satellite()
 	angular_momentum = PositionVector(std::vector<double>{0.0, 0.0, 0.0});
 	target = "none";
 	need_for_update = false;
+	max_reflections = 0;
 }
 
 Satellite::Satellite(StateVector& p, const Matrix& inertia)
@@ -29,6 +30,7 @@ Satellite::Satellite(StateVector& p, const Matrix& inertia)
 	angular_momentum = PositionVector(std::vector<double>{0.0, 0.0, 0.0});
 	target = "none";
 	need_for_update = false;
+	max_reflections = 0;
 }
 
 //Satellite::Satellite(StateVector& p, const Matrix& inertia, double m, const std::vector<Polygon>& pols, const boost::math::quaternion<double>& quat)
@@ -45,6 +47,7 @@ Satellite::Satellite(StateVector& p, const Matrix& inertia, double m, const std:
 	angular_momentum = PositionVector(std::vector<double>{0.0, 0.0, 0.0});
 	target = "none";
 	need_for_update = false;
+	max_reflections = 0;
 }
 
 StateVector Satellite::getState() const
@@ -408,6 +411,10 @@ Satellite::OutputInfo Satellite::getNextTarget() const
 std::string Satellite::getHdfFile() const
 {
 	return hdf5_filename;
+}
+int Satellite::getMaxReflections() const
+{
+	return max_reflections;
 }
 
 void Satellite::deleteFailedTarget()
@@ -1179,7 +1186,7 @@ PositionVector Satellite::setReactionWheelsMomentum(const PositionVector& moment
 		return momentum_to_compensate;
 	}
 
-	PositionVector new_momentums;
+	PositionVector new_momentums(4);
 	PositionVector local_angles, initial_momentums;
 	PositionVector momentum = momentum_to_compensate;
 
@@ -1530,6 +1537,10 @@ void Satellite::setOrbitFilename(const std::string& filename)
 {
 	orbit_filename = filename;
 }
+void Satellite::setMaxReflections(const int max_refl)
+{
+	max_reflections = max_refl;
+}
 void Satellite::set_to_default()
 {
 	pv = StateVector();
@@ -1554,5 +1565,6 @@ void Satellite::set_to_default()
 
 	dump_periods.clear();
 }
+
 Satellite::~Satellite() {
 }

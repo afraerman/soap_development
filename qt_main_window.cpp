@@ -37,7 +37,9 @@ void MainWindow::setupUi()
 
     // Run button
     runBtn_ = new QPushButton("Run Calculation");
+    multSatRunBtn_ = new QPushButton("Run Multiple Satellites");
     mainLayout->addWidget(runBtn_);
+    mainLayout->addWidget(multSatRunBtn_);
 
     // Status
     statusLabel_ = new QLabel("Ready");
@@ -65,6 +67,7 @@ void MainWindow::setupUi()
     // Connections
     connect(browseBtn_, &QPushButton::clicked, this, &MainWindow::onBrowseClicked);
     connect(runBtn_,    &QPushButton::clicked, this, &MainWindow::onRunClicked);
+    connect(multSatRunBtn_, &QPushButton::clicked, this, &MainWindow::onMultSatRunClicked);
     connect(closeBtn_,  &QPushButton::clicked, this, &MainWindow::onCloseClicked);
     connect(&futureWatcher_, &QFutureWatcher<void>::finished, this, &MainWindow::onIntegrationFinished);
 }
@@ -72,6 +75,7 @@ void MainWindow::setupUi()
 void MainWindow::setUiRunning(bool running)
 {
     runBtn_->setEnabled(!running);
+    multSatRunBtn_->setEnabled(!running);
     browseBtn_->setEnabled(!running);
     closeBtn_->setEnabled(!running);
     statusLabel_->setText(running ? "Running integration..." : "Ready");
@@ -135,6 +139,63 @@ void MainWindow::onBrowseClicked()
         fileEdit_->setText(file);
 }
 
+void MainWindow::onMultSatRunClicked()
+{
+    const QString filename = fileEdit_->text().trimmed();
+    if (filename.isEmpty()) {
+        QMessageBox::warning(this, "Error", "Please select a file first.");
+        return;
+    }
+
+    // prevent double-clicks
+    if (futureWatcher_.isRunning())
+    {
+        QMessageBox::information(this, "Busy", "Integration is already running");
+        return;
+    }
+
+    resultEdit_->clear();
+    setUiRunning(true);
+    
+    std::string input_filename = filename.toStdString();
+
+    std::vector<std::string> filenames;
+    statusLabel_->setText("Opening " + filename);
+
+    try
+    {
+        if (Input::read_multiple_satellites_filenames(input_filename, filenames))
+        {
+            setUiRunning(false);
+            statusLabel_->setText("Failed to read input");
+            return;
+        }
+    }
+    catch (...)
+    {
+        std::cerr << "\033[31mCouldn't make it\033[0m" << std::endl;
+        setUiRunning(false);
+        statusLabel_->setText("Failed");
+        return;
+    }
+
+
+    setUiRunning(false);
+    multiple_satellites = true;
+
+    for (auto fname: filenames)
+    {
+        filenames_queue.push(fname);
+    }
+    
+    if (!filenames_queue.empty())
+    {
+        fileEdit_->setText(QString::fromStdString(filenames_queue.front()));
+        filenames_queue.pop();
+        onRunClicked();
+    }
+}
+
 void MainWindow::onRunClicked()
 {
     const QString filename = fileEdit_->text().trimmed();
@@ -168,6 +229,7 @@ void MainWindow::onRunClicked()
 
     try
     {
+        satellite.set_to_default();
         satellite.resetModes();
         if (Input::read_json_file(input_filename, &satellite, &time, interval, step, output_step, screen_check))
         {
@@ -251,7 +313,6 @@ void MainWindow::onRunClicked()
 
 void MainWindow::onIntegrationFinished()
 {
-    setUiRunning(false);
 
     if (futureWatcher_.isCanceled()) {
         statusLabel_->setText("Canceled");
@@ -259,6 +320,18 @@ void MainWindow::onIntegrationFinished()
     else
     {
         statusLabel_->setText("Done");
+    }
+
+    if (!filenames_queue.empty())
+    {
+        fileEdit_->setText(QString::fromStdString(filenames_queue.front()));
+        filenames_queue.pop();
+        onRunClicked();
+    }
+    else
+    {
+        multiple_satellites = false;
+        setUiRunning(false);
     }
 }
 
