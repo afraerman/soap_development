@@ -1,6 +1,6 @@
  #include "stdafx.h"
 
-void quickstart();
+void quickstart(int argc);
 void multiple_satellites();
 void solarCoordinates();
 void read_old_format();
@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
 	#ifdef SOAP_WITH_QT
 		res = qt_main(argc, argv);
 	#else
-		quickstart();
+		quickstart(argc);
 	#endif
 	
 	//euler_angles();
@@ -41,49 +41,109 @@ int qt_main(int argc, char* argv[])
 #endif // SOAP_WITH_QT
 
 
-void quickstart()
+void quickstart(int argc)
 {
 	std::string input_filename;
 	//std::cout << "Enter input parameters filename: ";
 	std::cin >> input_filename;
 	//input_filename = "/media/alexey/Disk1/asc/solar_pressure/simulations/mm.json";
 
-	Satellite satellite;
-	//Satellite* sat = &satellite;
-	Time time;
-	//Time* time = &t;
-	double interval;
-	double step;
-	double output_step;
-	bool screen_check = true;
-	
-	if (Input::read_json_file(input_filename, &satellite, &time, interval, step, output_step, screen_check))
+	if (argc > 1)
 	{
-		//std::cerr << "\033[31m#O_INPUT Smth went wrong while reading file " << input_filename << "\033[0m" << std::endl;
+		std::vector<std::string> filenames;
+		try
+	    {
+	        if (Input::read_multiple_satellites_filenames(input_filename, filenames))
+	        {
+	            std::cerr << "\033[31mCouldn't read input file\033[0m\n";
+	            return;
+	        }
+	    }
+	    catch (...)
+	    {
+	        std::cerr << "\033[31mCouldn't read input file\033[0m" << std::endl;
+	        return;
+	    }
+		for (auto fname: filenames)
+		{
+			Satellite satellite;
+			//Satellite* sat = &satellite;
+			Time time;
+			//Time* time = &t;
+			double interval;
+			double step;
+			double output_step;
+			bool screen_check = true;
+			
+			satellite.set_to_default();
+			satellite.resetModes();
+			if (Input::read_json_file(fname, &satellite, &time, interval, step, output_step, screen_check))
+			{
+				//std::cerr << "\033[31m#O_INPUT Smth went wrong while reading file " << input_filename << "\033[0m" << std::endl;
+				continue;
+			}
+
+			try
+			{
+				if (!satellite.getHdfFile().empty())
+		        {
+		            SRPManager::initSRPEngine(satellite.getHdfFile());
+		            SRPManager::warmupSRP();
+		        }
+				FullMotionIntegrator fullmotion(&satellite, &time, interval, step, output_step, false, screen_check);
+				fullmotion.integrate();
+
+				if (!satellite.getHdfFile().empty())
+		        {
+		        	SRPManager::shutdown();
+		        }
+			}
+			catch (...)
+			{
+				continue;
+			}
+		}
 		return;
 	}
-
-	try
+	else
 	{
+		Satellite satellite;
+		//Satellite* sat = &satellite;
+		Time time;
+		//Time* time = &t;
+		double interval;
+		double step;
+		double output_step;
+		bool screen_check = true;
+		
+		if (Input::read_json_file(input_filename, &satellite, &time, interval, step, output_step, screen_check))
+		{
+			//std::cerr << "\033[31m#O_INPUT Smth went wrong while reading file " << input_filename << "\033[0m" << std::endl;
+			return;
+		}
 
-		if (!satellite.getHdfFile().empty())
-        {
-            SRPManager::initSRPEngine(satellite.getHdfFile());
-            SRPManager::warmupSRP();
-        }
-		FullMotionIntegrator fullmotion(&satellite, &time, interval, step, output_step, false, screen_check);
-		fullmotion.integrate();
+		try
+		{
 
-		if (!satellite.getHdfFile().empty())
-        {
-        	SRPManager::shutdown();
-        }
-	}
-	catch (...)
-	{
+			if (!satellite.getHdfFile().empty())
+	        {
+	            SRPManager::initSRPEngine(satellite.getHdfFile());
+	            SRPManager::warmupSRP();
+	        }
+			FullMotionIntegrator fullmotion(&satellite, &time, interval, step, output_step, false, screen_check);
+			fullmotion.integrate();
+
+			if (!satellite.getHdfFile().empty())
+	        {
+	        	SRPManager::shutdown();
+	        }
+		}
+		catch (...)
+		{
+			return;
+		}
 		return;
 	}
-	return;
 }
 
 void multiple_satellites()
