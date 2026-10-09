@@ -182,7 +182,7 @@
   "filenames": {
     "input": {
       "files_dir": "../Files/"
-    }
+    },
   "output": {
     "save_path": "../output/test_ephemeris.txt",
     "telemetry_path": "../output/test_telemetry.txt",
