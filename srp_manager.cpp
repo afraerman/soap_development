@@ -38,10 +38,15 @@ void SRPManager::initSRPEngine(const std::string& filename)
 			tokens.pop_back();
 		}
 
+		if (tokens[0][0] != '.')
+		{
+			folder = "/";
+		}
+
 		for (auto& t: tokens)
 
 		{
-			folder = folder + "/" + t;
+			folder = folder + t + "/";
 		}
 
 		srp_engine = std::make_unique<SRPEngine>(folder);
@@ -60,7 +65,7 @@ void SRPManager::initSRPEngine(const std::string& filename)
 	}
 	catch (const std::exception &e)
 	{
-		std::cerr << "\033[31m#1312_hdf5_file Can't open file: " << e.what() << std::endl;
+		std::cerr << "\033[31m#1312_hdf5_file Can't open file: " << e.what() << "\033[0m" << std::endl;
 		throw std::runtime_error("");
 	}
 	catch (...)
