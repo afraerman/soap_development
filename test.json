@@ -180,10 +180,13 @@
     "magnetic_torque": false
   },
   "filenames": {
+    "input": {
+      "files_dir": "../Files/"
+    }
   "output": {
-    "save_path": "./ephemeris.txt",
-    "telemetry_path": "./telemetry.txt",
-    "output_info_path": "./output_info.txt"
+    "save_path": "../output/test_ephemeris.txt",
+    "telemetry_path": "../output/test_telemetry.txt",
+    "output_info_path": "../output/test_output_info.txt"
     }
   },
   "backup":
