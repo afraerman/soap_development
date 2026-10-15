@@ -1,9 +1,11 @@
 cmake_minimum_required(VERSION 3.10)
-project(soap)
+project(soap LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
+set(CMAKE_CUDA_ARCHITECTURES "75;86;89" CACHE STRING "" FORCE)
 
 option(SOAP_BUILD_GUI "Build BUI version using Qt" OFF)
 
@@ -124,25 +126,29 @@ FetchContent_Declare(SRP
 
 FetchContent_MakeAvailable(SRP)
 
+if(SM3D_HAS_CUDA)
+	enable_language(CUDA)
+
+	set_target_properties(srp PROPERTIES
+		CXX_STANDARD 20
+		CXX_STANDARD_REQUIRED ON
+		CUDA_STANDARD 20
+        	CUDA_STANDARD_REQUIRED ON
+        	CUDA_SEPARABLE_COMPILATION ON
+        	CUDA_RESOLVE_DEVICE_SYMBOLS ON
+    	)
+    	
+    	target_link_libraries(${PROJECT_NAME} PRIVATE
+    		CUDA::cudart
+    		CUDA::cudadevrt
+    	)
+endif()
+
 
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
     srp
 )
-
-set_target_properties(srp PROPERTIES
-    CXX_STANDARD 20
-    CXX_STANDARD_REQUIRED ON
-)
-
-if(SM3D_HAS_CUDA)
-    set_target_properties(srp PROPERTIES
-        CUDA_STANDARD 20
-        CUDA_STANDARD_REQUIRED ON
-        CUDA_SEPARABLE_COMPILATION ON
-        CUDA_RESOLVE_DEVICE_SYMBOLS ON
-    )
-endif()
 
 if(WIN32)
     set(SOAP_CSPICE "${CMAKE_CURRENT_SOURCE_DIR}/libs/cspice.lib")
