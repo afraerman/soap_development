@@ -130,6 +130,18 @@ target_link_libraries(${PROJECT_NAME}
     srp
 )
 
+set_target_properties(srp PROPERTIES
+    CXX_STANDARD 20
+    CXX_STANDARD_REQUIRED ON
+)
+
+if(SM3D_HAS_CUDA)
+    set_target_properties(srp PROPERTIES
+        CUDA_STANDARD 20
+        CUDA_STANDARD_REQUIRED ON
+    )
+endif()
+
 if(WIN32)
     set(SOAP_CSPICE "${CMAKE_CURRENT_SOURCE_DIR}/libs/cspice.lib")
     set(SOAP_SOFA   "${CMAKE_CURRENT_SOURCE_DIR}/libs/sofa_lib.lib")
