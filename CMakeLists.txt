@@ -139,6 +139,8 @@ if(SM3D_HAS_CUDA)
     set_target_properties(srp PROPERTIES
         CUDA_STANDARD 20
         CUDA_STANDARD_REQUIRED ON
+        CUDA_SEPARABLE_COMPILATION ON
+        CUDA_RESOLVE_DEVICE_SYMBOLS ON
     )
 endif()
 
