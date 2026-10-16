@@ -42,7 +42,7 @@ public:
 	static void shutdown();
 
 	static void launchJob(Satellite& sat, const Time& time);
-	static void launchAsync(const PositionVector& sun_direction, int max_reflections = 2);
+	static void launchAsync(const PositionVector& sun_direction, int max_reflections = 0);
 	static bool isBusy();
 	static void cancelPending();
 
