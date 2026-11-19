@@ -84,6 +84,9 @@ private:
 	/// @return 0 if target acquired successful, 1 if target failed (impossible)
 	int acquire_target(Satellite& sat, Time& time, const double step, const PositionVector& torque);
 
+	/// @brief Returns the next attitude state if attitude file is given
+	int getNextState(Satellite&, Time&);
+
 protected:
 	/// @brief Integration method of variational integrator described in the article.
 	///

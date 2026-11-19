@@ -1,4 +1,4 @@
- #include "stdafx.h"
+#include "stdafx.h"
 
 void quickstart(int argc);
 void multiple_satellites();

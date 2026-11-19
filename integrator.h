@@ -23,6 +23,7 @@ private:
 
 protected:
 	bool integration_error = false;
+	int number_of_right_side_computations = 0;
 	//bool trial_mode = false;
 	
 public:
@@ -48,6 +49,8 @@ public:
 	void setInterval(double interval);
 	
 	void integrate(std::string savefilename = "");
+
+	int getNumberOfRightSideComputations() const;
 
 
 	~Integrator();

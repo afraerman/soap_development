@@ -20,6 +20,11 @@ bool Forces::account_for_solar_pressure = false;
 bool Forces::account_for_solar_pressure_gmat = false;
 bool Forces::account_for_relativity = false;
 
+std::chrono::steady_clock::time_point Forces::t_right_start, Forces::t_right_stop, Forces::t_non_sun_start, Forces::t_non_sun_stop,
+	Forces::t_postprocessing_start, Forces::t_postprocessing_stop;
+std::vector<double> Forces::t_right, Forces::t_non_sun, Forces::t_postprocessing;
+std::vector<Time> Forces::times;
+
 void Forces::setGravityOrder(const int go)
 {
 	if (go != gravity_order)
@@ -436,8 +441,12 @@ void Forces::solarPressureGmat(Satellite& sat, const Time& time)
 
 PositionVector Forces::allForces(Satellite& sat, const Time& time)
 {
+	times.push_back(time);
+
+	t_right_start = std::chrono::steady_clock::now();
+
 	forces[0] = 0.0; forces[1] = 0.0; forces[2] = 0.0;
-	
+	t_non_sun_start = std::chrono::steady_clock::now();
 	if (account_for_earth_gravity)
 	{
 		if (gravity_order == 0)
@@ -454,17 +463,30 @@ PositionVector Forces::allForces(Satellite& sat, const Time& time)
 	
 	forces = forces + sat.getPulseAcceleration(time) / 1000.0;
 
+	t_non_sun_stop = std::chrono::steady_clock::now();
+	t_non_sun.push_back(std::chrono::duration<double, std::micro>(t_non_sun_stop - t_non_sun_start).count());
+
 	if (account_for_solar_pressure)
 	{
 		if (sat.getHdfFile() != "")
 		{
 			auto res = SRPManager::getResult();
-			double ef = Astrometry::getEclipseFactor();
 
-			forces += PositionVector({res.total_force[0], res.total_force[1], res.total_force[2]}) * ef;
+			t_postprocessing_start = std::chrono::steady_clock::now();
+
+			double ef = Astrometry::getEclipseFactor();
+			double sc = SRPManager::getPhi0DistanceScaling();
+
+			forces += PositionVector({res.total_force[0], res.total_force[1], res.total_force[2]}) * ef * sc * 0.001 / sat.getMass();
+
+			t_postprocessing_stop = std::chrono::steady_clock::now();
+			t_postprocessing.push_back(std::chrono::duration<double, std::micro>(t_postprocessing_stop - t_postprocessing_start).count());
 		}
 		else solarPressureForce(sat, time);
 	}
+
+	t_right_stop = std::chrono::steady_clock::now();
+	t_right.push_back(std::chrono::duration<double, std::micro>(t_right_stop - t_right_start).count());
 	return forces;
 }
 

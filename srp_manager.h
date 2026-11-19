@@ -35,6 +35,9 @@ private:
 	static std::atomic<bool>          busy_;
 	static int                        steps_to_calculate;
 	static double                     phi0_distance_scaling;
+	
+	static std::chrono::steady_clock::time_point t_init_start, t_init_end,
+			t_rotate_start, t_rotate_end, t_compute_start, t_compute_end;
 
 public:
 	static void initSRPEngine(const std::string& filename);
@@ -55,4 +58,6 @@ public:
 
 	static void setPhi0DistanceScaling(double sc);
 	static double getPhi0DistanceScaling();
+
+	static std::vector<double> t_init, t_rotate, t_compute, efs;
 };

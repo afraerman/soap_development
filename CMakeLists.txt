@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.18)
-project(soap LANGUAGES CXX)
+project(soap_bench LANGUAGES CXX)
 
 # ------------------------------------------------------------------
 # Language standards

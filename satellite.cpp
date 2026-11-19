@@ -54,6 +54,14 @@ StateVector Satellite::getState() const
 {
 	return pv;
 }
+std::vector<double> Satellite::getKeplerian() const
+{
+	return keplerian;
+}
+bool Satellite::stateInKeplerian() const
+{
+	return transform_from_keplerian;
+}
 PositionVector Satellite::getPosition() const
 {
 	return pv.getPosition();
@@ -342,6 +350,10 @@ std::string Satellite::getTarget() const
 std::string Satellite::getOrbitFilename() const
 {
 	return orbit_filename;
+}
+std::string Satellite::getAttitudeFilename() const
+{
+	return attitude_filename;
 }
 PositionVector Satellite::getSunPosition() const
 {
@@ -818,6 +830,16 @@ void Satellite::update()
 void Satellite::setState(const StateVector& st)
 {
 	pv = st;
+	transform_from_keplerian = false;
+}
+void Satellite::setKeplerian(const std::vector<double>& k_elements)
+{
+	keplerian = k_elements;
+	transform_from_keplerian = true;
+}
+void Satellite::setStateInKeplerian(const bool info)
+{
+	transform_from_keplerian = info;
 }
 void Satellite::setUpdateState(const StateVector& st)
 {
@@ -1536,6 +1558,10 @@ void Satellite::setNewPolygons()
 void Satellite::setOrbitFilename(const std::string& filename)
 {
 	orbit_filename = filename;
+}
+void Satellite::setAttitudeFilename(const std::string& filename)
+{
+	attitude_filename = filename;
 }
 void Satellite::setMaxReflections(const int max_refl)
 {

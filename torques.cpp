@@ -514,8 +514,9 @@ PositionVector Torques::allTorques(Satellite& sat, const Time& time)
 		{
 			auto res = SRPManager::getResult();
 			double ef = Astrometry::getEclipseFactor();
+			double sc = SRPManager::getPhi0DistanceScaling();
 
-			torques += PositionVector({res.total_moment[0], res.total_moment[1], res.total_moment[2]}) * ef;
+			torques += PositionVector({res.total_moment[0], res.total_moment[1], res.total_moment[2]}) * ef * sc;
 		}
 		else solar_torque(sat, time);
 	}

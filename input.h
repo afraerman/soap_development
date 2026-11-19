@@ -17,7 +17,8 @@ private:
 			{"interval", false},
 			{"step", false},
 			{"output_step", false},
-			{"orbit_file", false}
+			{"orbit_file", false},
+			{"attitude_file", false}
 			}
 		},
 

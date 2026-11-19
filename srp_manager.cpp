@@ -14,7 +14,10 @@ std::optional<SRPResult>   SRPManager::result_;
 std::atomic<bool>          SRPManager::stop_{false};
 std::atomic<bool>          SRPManager::busy_{false};
 double                     SRPManager::phi0_distance_scaling{1.0};
-
+std::chrono::steady_clock::time_point SRPManager::t_init_start, SRPManager::t_init_end,
+			SRPManager::t_rotate_start, SRPManager::t_rotate_end, SRPManager::t_compute_start, SRPManager::t_compute_end;
+std::vector<double> SRPManager::t_init, SRPManager::t_rotate, SRPManager::t_compute, SRPManager::efs;
+			
 void SRPManager::initSRPEngine(const std::string& filename)
 {
 	std::lock_guard lock(mutex_);
@@ -52,7 +55,6 @@ void SRPManager::initSRPEngine(const std::string& filename)
 		srp_engine = std::make_unique<SRPEngine>(folder);
 		srp_engine->dataset().load(filename);
 
-		g_srp_phi0 = 4.56e-6;
 
 		stop_ = false;
 		busy_ = false;
@@ -140,6 +142,7 @@ void SRPManager::launchJob(Satellite& sat, const Time& time)
 	setPhi0DistanceScaling(SUN::FLUX / WORLD::SPEED_OF_LIGHT * pow(WORLD::AU / r, 2));
 
 	Astrometry::eclipseFactor(sun_pos, sat_pos);
+	efs.push_back(Astrometry::getEclipseFactor());
 	
 	Quaternion quat = sat.getQuaternion().get_inverse();
 	s = quat * s;
@@ -213,10 +216,14 @@ void SRPManager::workerLoop()
 		}
 
 		SRPResult result;
+		t_init_end = std::chrono::steady_clock::now();
+		t_init.push_back(std::chrono::duration<double, std::micro>(t_init_end - t_init_start).count());
 		try
 		{
 			srp_engine->setSunDirection(job.sx, job.sy, job.sz);
 			srp_engine->setMaxReflections(job.max_reflections);
+
+			t_compute_start = std::chrono::steady_clock::now();
 
 			if (is_rtx_device_available())
 				result = srp_engine->compute(SRPMethod::CentroidRTX);
@@ -224,6 +231,9 @@ void SRPManager::workerLoop()
 				result = srp_engine->compute(SRPMethod::CentroidGPU);
 			else
 				result = srp_engine->compute(SRPMethod::CentroidCPU);
+
+			t_compute_end = std::chrono::steady_clock::now();
+			t_compute.push_back(std::chrono::duration<double, std::micro>(t_compute_end - t_compute_start).count());
 		}
 		catch (const std::exception& e)
 		{

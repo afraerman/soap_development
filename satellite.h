@@ -3,6 +3,8 @@ class Satellite
 {
 private:
 	StateVector pv;
+	std::vector<double> keplerian;
+	bool transform_from_keplerian;
 	double mass;
 	Matrix inertia_tensor;
 	std::vector<Polygon> polygons;
@@ -53,6 +55,7 @@ private:
 	std::string target;
 
 	std::string orbit_filename;
+	std::string attitude_filename;
 
 	// Update values
 	StateVector upd_pv;
@@ -90,6 +93,8 @@ public:
 	Satellite(StateVector&, const Matrix&, double, const std::vector<Polygon>&, const Quaternion&);
 
 	StateVector getState() const;
+	std::vector<double> getKeplerian() const;
+	bool stateInKeplerian() const;
 	PositionVector getPosition() const;
 	PositionVector getVelocity() const;
 	double getMass() const;
@@ -126,6 +131,7 @@ public:
 	Time getTargetTime(const Time& t);
 	std::string getTarget() const;
 	std::string getOrbitFilename() const;
+	std::string getAttitudeFilename() const;
 	PositionVector getSunPosition() const;
 	double getSetbackTime() const;
 
@@ -149,6 +155,8 @@ public:
 	int checkAttitudeModes();
 
 	void setState(const StateVector&);
+	void setKeplerian(const std::vector<double>&);
+	void setStateInKeplerian(const bool);
 	void setUpdateState(const StateVector&);
 	void setMass(double);
 	void setPosition(PositionVector&);
@@ -243,6 +251,7 @@ public:
 	void setNewPolygons();
 
 	void setOrbitFilename(const std::string& filename);
+	void setAttitudeFilename(const std::string& filename);
 
 	void setMaxReflections(const int max_refl);
 	

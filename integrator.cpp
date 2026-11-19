@@ -66,6 +66,11 @@ Time* Integrator::getTime()
 	return time;
 }
 
+int Integrator::getNumberOfRightSideComputations() const
+{
+	return number_of_right_side_computations;
+}
+
 void Integrator::make_ephemeris_header(std::ofstream& os)
 {
 	os << "header:" << std::endl;
@@ -293,6 +298,12 @@ void Integrator::make_telemetry_header(std::ofstream& os)
 		column++;
 	}
 
+	os << "\t\t- right-side count:\n";
+	os << "\t\t\tcomment: " << column << "th column\n";
+	os << "\t\t\tdescription: number of times the right side was computed\n";
+	os << "\t\t\tunits: --\n";
+	column++;
+
 	os << "#End of header\n";
 }
 
@@ -334,6 +345,8 @@ void Integrator::integrate(std::string savefilename)
 	{
 		while (elapsed_time < interval)
 		{
+			number_of_right_side_computations = 0;
+
 			var_sat1 = *satellite;
 			var_time1 = *time;
 
@@ -350,6 +363,7 @@ void Integrator::integrate(std::string savefilename)
 			{
 				SRPManager::launchJob(var_sat1, var_time1);
 			}
+			
 			integrationMethod(var_sat1, var_time1, h, from_the_start);
 			var_sat1.update();
 			if (integration_error)
@@ -389,7 +403,7 @@ void Integrator::integrate(std::string savefilename)
 			// Поиск нужного h
 			while (comparison(var_sat1, var_sat2) > tolerance)
 			{
-				std::cout << "h = " << h*2 << " is too big, decreasing" << std::endl;
+				std::cout << "h = " << h*2.0 << " is too big, decreasing" << std::endl;
 				// Значит нужно уменьшать шаг. Попробуем сделать одно движение с h и два с h/2
 
 				// шаг с h
@@ -440,7 +454,6 @@ void Integrator::integrate(std::string savefilename)
 
 			// Выбор размера шага: раз решения для последнего h и предпоследнего h неразличимы, то берём больший из них, то есть
 			h *= 2.0;
-			
 			// Ровно настолько сейчас "улетел" var_sat2, поэтому
 						
 			// Transition to next step
@@ -450,13 +463,6 @@ void Integrator::integrate(std::string savefilename)
 
 			Astrometry::rotationMatrices(*time);
 
-			// Чтобы шаг имел шанс возрасти, давайте сделаем вот такой финт:
-			h = std::min(h*2, output_time - elapsed_time);
-
-			// std::cout <<  "Current step: " << h << std::endl;
-
-			// Это теперь наш шаг, который мы хотим шагнуть, он точно является долей output_step, поэтому опасности "перешагнуть" точку вывода нет
-			exponent = 0.0;
 
 			// OUTPUT
 			if ((elapsed_time >= output_time - 1e-9) || (elapsed_time >= interval - 1e-9))
@@ -484,8 +490,18 @@ void Integrator::integrate(std::string savefilename)
 					telemetry << satellite->getMagneticMomentum() << '\t';
 				}
 
-				telemetry << satellite->getThrustersMomentum() << '\t' << satellite->getAngularMomentum() << std::endl;
+				telemetry << satellite->getThrustersMomentum() << '\t' << satellite->getAngularMomentum() << '\t';
+				telemetry << number_of_right_side_computations << std::endl;
 			}
+			
+			// Чтобы шаг имел шанс возрасти, давайте сделаем вот такой финт:
+			//h = std::min(h*2.0, output_time - elapsed_time);
+			h = h * 2.0; // в bench-режиме пофиг на outputstep, главное -- verdict.csv
+
+			// std::cout <<  "Current step: " << h << std::endl;
+
+			// Это теперь наш шаг, который мы хотим шагнуть, он точно является долей output_step, поэтому опасности "перешагнуть" точку вывода нет
+			exponent = 0.0;
 		}
 	}
 	else
@@ -493,6 +509,8 @@ void Integrator::integrate(std::string savefilename)
 		h = step;
 		while (elapsed_time < interval)
 		{
+			number_of_right_side_computations = 0;
+
 			// screen check
 			if (enable_screen_check)
 			{	
@@ -558,7 +576,8 @@ void Integrator::integrate(std::string savefilename)
 				{
 					telemetry << '\t' << Torques::getCenterOfPressure();
 				}
-				telemetry << std::endl;				
+
+				telemetry << '\t' << number_of_right_side_computations << std::endl;
 
 				satellite->make_telemetry = false;
 			}
@@ -607,6 +626,32 @@ void Integrator::integrate(std::string savefilename)
 		outputinfo << std::endl;
 	}
 	outputinfo.close();
+
+	std::ofstream verdict(FILENAMES::verdict_filename);
+	if (!verdict.is_open())
+	{
+		std::cerr << "\033[31m# Can't create verdict\n\033[0m";
+		throw std::runtime_error("");
+	}
+	verdict << "time,ef,T_init,T_compute_,T_postprocess,T_non_sun,T_right";
+	if (bench.rotate)
+	{
+		verdict << ",T_rotate";
+	}
+	verdict << "\n";
+
+	std::setprecision(17);
+	for (int i = 0; i < (int)Forces::times.size(); i++)
+	{
+		verdict << Forces::times[i] << "," << SRPManager::efs[i] << "," << SRPManager::t_init[i] << ",";
+		verdict << SRPManager::t_compute[i] << "," << Forces::t_postprocessing[i] << ",";
+		verdict << Forces::t_non_sun[i] << "," << Forces::t_right[i];
+		if (bench.rotate)
+		{
+			verdict << "," << SRPManager::t_rotate[i];
+		}
+		verdict << "\n";
+	}
 }
 
 Integrator::~Integrator()

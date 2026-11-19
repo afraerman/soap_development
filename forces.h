@@ -74,6 +74,9 @@ private:
 
 	// ----------------- GENERAL RELATIVITY EFFECTS ----------------- //
 
+	static std::chrono::steady_clock::time_point t_right_start, t_right_stop, t_non_sun_start, t_non_sun_stop,
+		t_postprocessing_start, t_postprocessing_stop;
+
 public:
 	static void setGravityOrder(const int);
 	static void setEGMfile(const std::string& filename);
@@ -96,4 +99,8 @@ public:
 	static void checkFilenames();
 	static void checkPnm();
 	static void check2000nan();
+
+	static std::vector<double> t_right, t_non_sun, t_postprocessing;
+	static std::vector<Time> times;
+
 };

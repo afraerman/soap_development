@@ -121,6 +121,9 @@ void OrbitIntegrator::initializeCoefficients(Time& t, bool from_the_start)
 void OrbitIntegrator::updateAlpha(Satellite& sat, const Time& time, int i)
 {
 	PositionVector forces = Forces::allForces(sat, time + substeps[i]);
+	
+	number_of_right_side_computations++;
+	
 	std::vector<double> new_alpha_i(number_of_equations, 0);
 	for (int k = 0; k < number_of_equations; k++)
 	{
@@ -148,12 +151,12 @@ void OrbitIntegrator::interpolateCoefficients()
 	if (alpha1.size() == 0)
 	{
 		alpha1 = alpha[0];
-		std::cout << "first integration" << std::endl;
+		//std::cout << "first integration" << std::endl;
 	}
 	else if (alpha2.size() == 0)
 	{
 		alpha2 = alpha[0];
-		std::cout << "second integration" << std::endl;
+		///std::cout << "second integration" << std::endl;
 
 		for (int k = 0; k < alpha.getColumns(); k++)
 			alpha[0][k] = 2.0 * alpha2[k] - alpha1[k];
@@ -218,6 +221,9 @@ void OrbitIntegrator::integrationMethod(Satellite& sat, Time& t, double t_final,
 	
 	PositionVector initial_position = sat.getPosition();
 	initial_forces = Forces::allForces(sat, t);
+	
+	number_of_right_side_computations++;
+	
 	initializeCoefficients(t, from_the_start);
 
 	a_arr = c * alpha;
@@ -344,6 +350,38 @@ OrbitIntegrator::OrbitIntegrator(Satellite* satellite, Time* time, double interv
 	{
 		Astrometry::get_ephemeris();
 		Astrometry::no_ephemeris = false;
+	}
+
+	// set state from Keplerian
+	if (satellite->stateInKeplerian())
+	{
+		double elts[7];
+		double a, e, i, Omega, omega, m;
+		std::vector<double> keplerian = satellite->getKeplerian();
+
+		a = keplerian[0];
+		e = keplerian[1];
+		i = keplerian[2];
+		Omega = keplerian[3];
+		omega = keplerian[4];
+		m = keplerian[5];
+
+		elts[0] = a * (1.0 - e);  // Pericenter distance (km)
+	    elts[1] = e;
+	    elts[2] = i * M_PI / 180.0;            // Inclination (rad)
+	    elts[3] = Omega * M_PI / 180.0;            // RAAN / Longitude of ascending node (rad)
+	    elts[4] = omega * M_PI / 180.0;            // Argument of periapsis (rad)
+	    elts[5] = m;
+
+	    str2et_c((time->toString() + " UTC").c_str(), &elts[6]);
+	    elts[7] = 398600.4418;
+
+	    double state[6];
+	    conics_c(elts, elts[6], state);
+
+	    satellite->setState(StateVector(std::vector<double>{state[0], state[1], state[2], state[3], state[4], state[5]}));
+
+		satellite->setStateInKeplerian(false);
 	}
 }
 

@@ -23,6 +23,41 @@ void AttitudeIntegrator::compute_momentum(const Matrix& I, const PositionVector&
 	}
 }
 
+int AttitudeIntegrator::getNextState(Satellite& sat, Time& t)
+{
+
+	std::string str;
+	double w, x, y, z;
+	Quaternion q;
+	Time current_time;
+
+	std::ifstream attitude_file(sat.getAttitudeFilename());
+	if (!attitude_file.is_open())
+	{
+		std::cerr << "\033[31m#015 No such attitude file " << sat.getAttitudeFilename() << "\033[0m" <<  std::endl;
+		return 1;
+	}
+
+	getline(attitude_file, str);
+	while (str != "META_STOP")
+	{
+		getline(attitude_file, str);
+	}
+	while (attitude_file >> str >> w >> x >> y >> z)
+	{
+		current_time = Time(str);
+		if (current_time > t)
+		{
+			break;
+		}
+	}
+	q = Quaternion(w, x, y, z);
+	sat.setUpdateQuaternion(q);
+	sat.requestUpdate();
+
+	return 0;
+}
+
 bool AttitudeIntegrator::scan_time(const Satellite& sat, const Time& time) const
 {
 	std::vector<std::vector<Time>> scan_times = sat.getScanTimes();
@@ -142,11 +177,42 @@ int AttitudeIntegrator::acquire_target(Satellite& sat, Time& time, const double 
 
 void AttitudeIntegrator::integrationMethod(Satellite& sat, Time& time, double step, bool from_the_start)
 {
+	if (bench.attitude == "l2")
+	{
+		PositionVector position = sat.getPosition();
+		PositionVector velocity = sat.getVelocity();
+		
+		PositionVector z = -1.0 * position / position.norm();
+		PositionVector y = velocity.cross(position) / (position.cross(velocity)).norm();
+		PositionVector x = y.cross(z) / (y.cross(z)).norm();
+
+		Matrix r =  Matrix(3, 3, {{x[0], y[0], z[0]}, {x[1], y[1], z[1]}, {x[2], y[2], z[2]}});
+		Quaternion q(r);
+		sat.setUpdateQuaternion(q);
+		return;
+	}
+	else if (bench.attitude == "l1")
+	{
+		sat.setUpdateQuaternion(Quaternion(1.0, 0.0, 0.0, 0.0));
+		return;
+	}
+
+	if (sat.getAttitudeFilename().length() > 1)
+	{
+		if (getNextState(sat, time))
+		{
+			integration_error = true;
+		}
+		return;
+	}
+
 	//auto future_torque = std::async(std::launch::async, &Torques::allTorques, std::ref(sat), std::ref(time));
 
 	// All torques influencing the satellite
 	//PositionVector torque = PositionVector({ std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN() });
 	PositionVector torque = Torques::allTorques(sat, time);
+
+	number_of_right_side_computations++;
 	
 	// Momentum to compensate with control systems available
 	PositionVector momentum_to_compensate = PositionVector({ 0.0, 0.0, 0.0 });

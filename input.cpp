@@ -987,6 +987,20 @@ int Input::read_json_file(const std::string& filename, Satellite* sat, Time* tim
 		return 1;
 	}
 
+	/* ---------------------------------- BENCH -----------------------------------------*/
+	auto bench_p = data["bench"];
+	
+	if (bench_p.isMember("attitude") && !bench_p["attitude"].isNull())
+	{
+		bench.attitude = bench_p["attitude"].asString();
+	}
+
+	if (bench_p.isMember("rotate") && !bench_p["rotate"].isNull())
+	{
+		bench.rotate = bench_p["rotate"].asBool();
+	}
+
+
 	/* ---------------------------------- SIMULATION ------------------------------------*/
 	auto simulation = data["simulation"];
 
@@ -1015,8 +1029,8 @@ int Input::read_json_file(const std::string& filename, Satellite* sat, Time* tim
 		try
 		{
 			step = simulation["step"].asDouble();
-			if (step < 0.0) throw;
-			ost = step;
+			if (step > 0.0)
+				ost = step;
 			parameters_dict["Simulation"]["step"] = true;
 		}
 		catch (...)
@@ -1077,6 +1091,20 @@ int Input::read_json_file(const std::string& filename, Satellite* sat, Time* tim
 			return 1;
 		}
 	}
+	if (simulation.isMember("attitude_file") && !simulation["attitude_file"].isNull())
+	{
+		try
+		{
+			std::string attitude_filename = simulation["attitude_file"].asString();
+			sat->setAttitudeFilename(attitude_filename);
+			parameters_dict["Simulation"]["attitude_file"] = true;
+		}
+		catch (...)
+		{
+			std::cerr << "\033[31m1161_attitude_file Invalid value of attitude fileanme " << simulation["attitude_file"] << "\033[0m\n";
+			return 1;
+		}
+	}
 	if (simulation.isMember("screen_check") && !(simulation["screen_check"].isNull()))
 	{
 		try
@@ -1113,6 +1141,20 @@ int Input::read_json_file(const std::string& filename, Satellite* sat, Time* tim
 		catch (const std::exception& e)
 		{
 			std::cerr << "\033[31m#1251_state_vector " << e.what() << "\033[0m" << std::endl;
+			return 1;
+		}
+	}
+	else if (spacecraft.isMember("keplerian") && !spacecraft["keplerian"].isNull())
+	{
+		try
+		{
+			auto st = get_doubles(spacecraft["keplerian"], "spacecraft.keplerian", 6);
+
+			sat->setKeplerian(st);
+		}
+		catch( const std::exception& e)
+		{
+			std::cerr << "\033[31m#1261_keplerian " << e.what() << "\033[0m" << std::endl;
 			return 1;
 		}
 	}
@@ -2394,6 +2436,17 @@ int Input::read_json_file(const std::string& filename, Satellite* sat, Time* tim
 	auto input_filenames = filenames["input"];
 	auto output_filenames = filenames["output"];
 
+	std::string folder = "";
+	const size_t start = filename.find_last_of('/') + 1;          // npos + 1 == 0
+    const size_t end   = filename.find_last_of('.');
+    std::string fname = filename.substr(start, end - start);
+
+	if (output_filenames.isMember("output_dir") && !output_filenames["output_dir"].isNull())
+	{
+		folder = output_filenames["output_dir"].asString() + "/";
+		parameters_dict["Filenames"]["output_dir"] = true;
+	}
+
 	if (output_filenames.isMember("save_path") && !output_filenames["save_path"].isNull())
 	{
 		FILENAMES::ephemeris_filename = output_filenames["save_path"].asString();
@@ -2401,10 +2454,7 @@ int Input::read_json_file(const std::string& filename, Satellite* sat, Time* tim
 	}
 	else
 	{
-		std::stringstream ss_str(filename);
-		std::string fname;
-		std::getline(ss_str, fname, '.');
-		FILENAMES::ephemeris_filename = fname + "_ephemeris.txt";
+		FILENAMES::ephemeris_filename = folder + fname + "_ephemeris.txt";
 	}
 
 	if (output_filenames.isMember("telemetry_path") && !output_filenames["telemetry_path"].isNull())
@@ -2414,10 +2464,7 @@ int Input::read_json_file(const std::string& filename, Satellite* sat, Time* tim
 	}
 	else
 	{
-		std::stringstream ss_str(filename);
-		std::string fname;
-		std::getline(ss_str, fname, '.');
-		FILENAMES::telemetry_filename = fname + "_telemetry.txt";
+		FILENAMES::telemetry_filename = folder + fname + "_telemetry.txt";
 	}
 
 	if (output_filenames.isMember("output_info_path") && !output_filenames["output_info_path"].isNull())
@@ -2427,10 +2474,16 @@ int Input::read_json_file(const std::string& filename, Satellite* sat, Time* tim
 	}
 	else
 	{
-		std::stringstream ss_str(filename);
-		std::string fname;
-		std::getline(ss_str, fname, '.');
-		FILENAMES::output_info_filename = fname + "_output_info.txt";
+		FILENAMES::output_info_filename = folder + fname + "_output_info.txt";
+	}
+
+	if (output_filenames.isMember("verdict_path") && !output_filenames["verdict_path"].isNull())
+	{
+		FILENAMES::verdict_filename = output_filenames["verdict_path"].asString();
+	}
+	else
+	{
+		FILENAMES::verdict_filename = folder + fname + "_verdict.csv";
 	}
 
 	if (input_filenames.isMember("files_dir") && !input_filenames["files_dir"].isNull())
