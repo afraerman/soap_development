@@ -311,7 +311,15 @@ Time& Time::operator+=(const double dt)
 
 std::string Time::toString() const
 {
-	return std::to_string(year) + "-" + std::to_string(month) + "-" + std::to_string(day) + "T" + std::to_string(hours) + ":" + std::to_string(minutes) + ":" + std::to_string(seconds);
+	std::ostringstream oss;
+	oss << std::setfill('0')
+	    << std::setw(4) << year << '-'
+	    << std::setw(2) << month << '-'
+	    << std::setw(2) << day << 'T'
+	    << std::setw(2) << hours << ':'
+	    << std::setw(2) << minutes << ':'
+	    << std::fixed << std::setprecision(3) << std::setw(6) << seconds;
+	return oss.str();
 }
 
 std::ostream& operator<<(std::ostream& os, const Time& time)
