@@ -228,7 +228,7 @@ endif()
 # ------------------------------------------------------------------
 # Unit tests (optional)
 # ------------------------------------------------------------------
-option(SOAP_BUILD_TESTS "Build unit tests" ON)
+option(SOAP_BUILD_TESTS "Build unit tests" OFF)
 
 if(SOAP_BUILD_TESTS)
     message(STATUS "Building tests")

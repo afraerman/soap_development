@@ -355,7 +355,7 @@ OrbitIntegrator::OrbitIntegrator(Satellite* satellite, Time* time, double interv
 	// set state from Keplerian
 	if (satellite->stateInKeplerian())
 	{
-		double elts[7];
+		SpiceDouble elts[8];
 		double a, e, i, Omega, omega, m;
 		std::vector<double> keplerian = satellite->getKeplerian();
 
@@ -373,7 +373,7 @@ OrbitIntegrator::OrbitIntegrator(Satellite* satellite, Time* time, double interv
 	    elts[4] = omega * M_PI / 180.0;            // Argument of periapsis (rad)
 	    elts[5] = m;
 
-	    str2et_c((time->toString() + " UTC").c_str(), &elts[6]);
+	    str2et_c((time->toString()).c_str(), &elts[6]);
 	    elts[7] = 398600.4418;
 
 	    double state[6];

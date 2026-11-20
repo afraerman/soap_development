@@ -90,7 +90,7 @@ void quickstart(int argc)
 		            SRPManager::initSRPEngine(satellite.getHdfFile());
 		            SRPManager::warmupSRP();
 		        }
-				FullMotionIntegrator fullmotion(&satellite, &time, interval, step, output_step, false, screen_check);
+				FullMotionIntegrator fullmotion(&satellite, &time, interval, step, output_step, false, 1e-5, screen_check);
 				fullmotion.integrate();
 
 				if (!satellite.getHdfFile().empty())
@@ -130,7 +130,7 @@ void quickstart(int argc)
 	            SRPManager::initSRPEngine(satellite.getHdfFile());
 	            SRPManager::warmupSRP();
 	        }
-			FullMotionIntegrator fullmotion(&satellite, &time, interval, step, output_step, false, screen_check);
+			FullMotionIntegrator fullmotion(&satellite, &time, interval, step, output_step, false, 1e-5, screen_check);
 			fullmotion.integrate();
 
 			if (!satellite.getHdfFile().empty())
