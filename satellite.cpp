@@ -70,6 +70,14 @@ PositionVector Satellite::getVelocity() const
 {
 	return pv.getVelocity();
 }
+PositionVector Satellite::getUpdatePosition() const
+{
+	return upd_pv.getPosition();
+}
+PositionVector Satellite::getUpdateVelocity() const
+{
+	return upd_pv.getVelocity();
+}
 double Satellite::getMass() const
 {
 	return mass;

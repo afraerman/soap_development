@@ -97,6 +97,8 @@ public:
 	bool stateInKeplerian() const;
 	PositionVector getPosition() const;
 	PositionVector getVelocity() const;
+	PositionVector getUpdatePosition() const;
+	PositionVector getUpdateVelocity() const;
 	double getMass() const;
 	Matrix getInertiaTensor() const;
 	std::vector<Polygon> getPolygons() const;

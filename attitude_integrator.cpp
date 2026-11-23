@@ -179,8 +179,8 @@ void AttitudeIntegrator::integrationMethod(Satellite& sat, Time& time, double st
 {
 	if (bench.attitude == "l2")
 	{
-		PositionVector position = sat.getPosition();
-		PositionVector velocity = sat.getVelocity();
+		PositionVector position = sat.getUpdatePosition();
+		PositionVector velocity = sat.getUpdateVelocity();
 		
 		PositionVector z = -1.0 * position / position.norm();
 		PositionVector y = velocity.cross(position) / (position.cross(velocity)).norm();
@@ -188,6 +188,7 @@ void AttitudeIntegrator::integrationMethod(Satellite& sat, Time& time, double st
 
 		Matrix r =  Matrix(3, 3, {{x[0], y[0], z[0]}, {x[1], y[1], z[1]}, {x[2], y[2], z[2]}});
 		Quaternion q(r);
+
 		sat.setUpdateQuaternion(q);
 		return;
 	}
@@ -818,6 +819,7 @@ AttitudeIntegrator::AttitudeIntegrator(Satellite* sat, Time* time, double interv
 		Astrometry::no_ephemeris = false;
 	}
 	control_order = Control::getControlOrder();
+
 }
 
 AttitudeIntegrator::~AttitudeIntegrator()
