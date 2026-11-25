@@ -643,9 +643,13 @@ void Integrator::integrate(std::string savefilename)
 	std::setprecision(17);
 	for (int i = 0; i < (int)Forces::times.size(); i++)
 	{
-		verdict << Forces::times[i] << "," << SRPManager::efs[i] << "," << SRPManager::t_init[i] << ",";
-		verdict << SRPManager::t_compute[i] << "," << Forces::t_postprocessing[i] << ",";
-		verdict << Forces::t_non_sun[i] << "," << Forces::t_right[i];
+		verdict << Forces::times[i] << ",";
+		if (Forces::account_for_solar_pressure) verdict << Forces::efs[i] << ",";
+		if (bench.write["init"])        verdict << SRPManager::t_init[i] << ",";
+		if (bench.write["compute"])     verdict << SRPManager::t_compute[i] << ",";
+		if (bench.write["postprocess"]) verdict << Forces::t_postprocessing[i] << ",";
+		if (bench.write["non_sun"])     verdict << Forces::t_non_sun[i] << ",";
+		if (bench.write["right_side"])  verdict << Forces::t_right[i];
 		if (bench.rotate)
 		{
 			verdict << "," << SRPManager::t_rotate[i];

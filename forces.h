@@ -100,7 +100,7 @@ public:
 	static void checkPnm();
 	static void check2000nan();
 
-	static std::vector<double> t_right, t_non_sun, t_postprocessing;
+	static std::vector<double> t_right, t_non_sun, t_postprocessing, efs;
 	static std::vector<Time> times;
 
 };

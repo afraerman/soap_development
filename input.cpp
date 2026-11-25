@@ -1000,6 +1000,20 @@ int Input::read_json_file(const std::string& filename, Satellite* sat, Time* tim
 		bench.rotate = bench_p["rotate"].asBool();
 	}
 
+	if (bench_p.isMember("write") && !bench_p["write"].isNull())
+	{
+		auto write_params = bench_p["write"];
+		for (auto elem: write_params)
+		{
+			if (elem.asString() == "init") bench.write["init"] = true;
+			if (elem.asString() == "rotate") bench.write["rotate"] = true;
+			if (elem.asString() == "compute") bench.write["compute"] = true;
+			if (elem.asString() == "postprocess") bench.write["postprocess"] = true;
+			if (elem.asString() == "right_side") bench.write["right_side"] = true;
+			if (elem.asString() == "non_sun") bench.write["non_sun"] = true;
+		}
+	}
+
 
 	/* ---------------------------------- SIMULATION ------------------------------------*/
 	auto simulation = data["simulation"];

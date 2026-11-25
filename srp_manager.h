@@ -59,5 +59,5 @@ public:
 	static void setPhi0DistanceScaling(double sc);
 	static double getPhi0DistanceScaling();
 
-	static std::vector<double> t_init, t_rotate, t_compute, efs;
+	static std::vector<double> t_init, t_rotate, t_compute;
 };
