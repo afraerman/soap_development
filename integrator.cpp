@@ -403,7 +403,7 @@ void Integrator::integrate(std::string savefilename)
 			// Поиск нужного h
 			while (comparison(var_sat1, var_sat2) > tolerance)
 			{
-				std::cout << "h = " << h*2.0 << " is too big, decreasing" << std::endl;
+				// std::cout << "h = " << h*2.0 << " is too big, decreasing" << std::endl;
 				// Значит нужно уменьшать шаг. Попробуем сделать одно движение с h и два с h/2
 
 				// шаг с h
@@ -633,10 +633,16 @@ void Integrator::integrate(std::string savefilename)
 		std::cerr << "\033[31m# Can't create verdict\n\033[0m";
 		throw std::runtime_error("");
 	}
-	verdict << "time,ef,T_init,T_compute_,T_postprocess,T_non_sun,T_right";
+	verdict << "time,";
+	if (Forces::account_for_solar_pressure) verdict << "ef,";
+	if (bench.write["init"]) verdict << "T_init,";
+	if (bench.write["compute"]) verdict << "T_compute_,";
+	if (bench.write["postprocess"]) verdict << "T_postprocess,";
+	if (bench.write["non_sun"]) verdict << "T_non_sun,";
+	if (bench.write["right_side"]) verdict << "T_right,";
 	if (bench.rotate)
 	{
-		verdict << ",T_rotate";
+		verdict << "T_rotate";
 	}
 	verdict << "\n";
 

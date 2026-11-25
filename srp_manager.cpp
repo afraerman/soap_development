@@ -224,6 +224,17 @@ void SRPManager::workerLoop()
 			srp_engine->setSunDirection(job.sx, job.sy, job.sz);
 			srp_engine->setMaxReflections(job.max_reflections);
 
+			t_rotate_start = std::chrono::steady_clock::now();
+
+			if (bench.write["rotate"])
+			{
+				double gamma = std::atan2(-job.sy, job.sz);
+				srp_engine->dataset().setJointValue("SolarArrayGroup_L", gamma);
+				srp_engine->dataset().setJointValue("SolarArrayGroup_R", gamma);
+				t_rotate_end = std::chrono::steady_clock::now();
+				t_rotate.push_back(std::chrono::duration<double, std::micro>(t_rotate_end - t_rotate_start).count());
+			}
+
 			t_compute_start = std::chrono::steady_clock::now();
 
 			if (is_rtx_device_available())
