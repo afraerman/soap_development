@@ -12,6 +12,8 @@ struct Bench
 		{ "non_sun", false }
 	};
 	bool rotate = false;
+	double factor = 1.0;
+	bool make_verdict = false;
 };
 
 inline Bench bench;

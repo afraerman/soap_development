@@ -179,6 +179,7 @@ void AttitudeIntegrator::integrationMethod(Satellite& sat, Time& time, double st
 {
 	if (bench.attitude == "l2")
 	{
+		sat.setSetbackTime(0.0);
 		PositionVector position = sat.getUpdatePosition();
 		PositionVector velocity = sat.getUpdateVelocity();
 		
@@ -194,6 +195,7 @@ void AttitudeIntegrator::integrationMethod(Satellite& sat, Time& time, double st
 	}
 	else if (bench.attitude == "l1")
 	{
+		sat.setSetbackTime(0.0);
 		sat.setUpdateQuaternion(Quaternion(1.0, 0.0, 0.0, 0.0));
 		return;
 	}

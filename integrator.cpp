@@ -627,40 +627,44 @@ void Integrator::integrate(std::string savefilename)
 	}
 	outputinfo.close();
 
-	std::ofstream verdict(FILENAMES::verdict_filename);
-	if (!verdict.is_open())
+	if (bench.make_verdict)
 	{
-		std::cerr << "\033[31m# Can't create verdict\n\033[0m";
-		throw std::runtime_error("");
-	}
-	verdict << "time,";
-	if (Forces::account_for_solar_pressure) verdict << "ef,";
-	if (bench.write["init"]) verdict << "T_init,";
-	if (bench.write["compute"]) verdict << "T_compute_,";
-	if (bench.write["postprocess"]) verdict << "T_postprocess,";
-	if (bench.write["non_sun"]) verdict << "T_non_sun,";
-	if (bench.write["right_side"]) verdict << "T_right,";
-	if (bench.rotate)
-	{
-		verdict << "T_rotate";
-	}
-	verdict << "\n";
-
-	std::setprecision(17);
-	for (int i = 0; i < (int)Forces::times.size(); i++)
-	{
-		verdict << Forces::times[i] << ",";
-		if (Forces::account_for_solar_pressure) verdict << Forces::efs[i] << ",";
-		if (bench.write["init"])        verdict << SRPManager::t_init[i] << ",";
-		if (bench.write["compute"])     verdict << SRPManager::t_compute[i] << ",";
-		if (bench.write["postprocess"]) verdict << Forces::t_postprocessing[i] << ",";
-		if (bench.write["non_sun"])     verdict << Forces::t_non_sun[i] << ",";
-		if (bench.write["right_side"])  verdict << Forces::t_right[i];
+		std::ofstream verdict(FILENAMES::verdict_filename);
+		if (!verdict.is_open())
+		{
+			std::cerr << "\033[31m# Can't create verdict\n\033[0m";
+			throw std::runtime_error("");
+		}
+		verdict << "time,";
+		if (Forces::account_for_solar_pressure) verdict << "ef,";
+		if (bench.write["init"]) verdict << "T_init,";
+		if (bench.write["compute"]) verdict << "T_compute_,";
+		if (bench.write["postprocess"]) verdict << "T_postprocess,";
+		if (bench.write["non_sun"]) verdict << "T_non_sun,";
+		if (bench.write["right_side"]) verdict << "T_right,";
 		if (bench.rotate)
 		{
-			verdict << "," << SRPManager::t_rotate[i];
+			verdict << "T_rotate";
 		}
 		verdict << "\n";
+
+		std::setprecision(17);
+		for (int i = 0; i < (int)Forces::times.size(); i++)
+		{
+			verdict << Forces::times[i] << ",";
+			if (Forces::account_for_solar_pressure) verdict << Forces::efs[i] << ",";
+			if (bench.write["init"])        verdict << SRPManager::t_init[i] << ",";
+			if (bench.write["compute"])     verdict << SRPManager::t_compute[i] << ",";
+			if (bench.write["postprocess"]) verdict << Forces::t_postprocessing[i] << ",";
+			if (bench.write["non_sun"])     verdict << Forces::t_non_sun[i] << ",";
+			if (bench.write["right_side"])  verdict << Forces::t_right[i];
+			if (bench.rotate)
+			{
+				verdict << "," << SRPManager::t_rotate[i];
+			}
+			verdict << "\n";
+		}
+		verdict.close();
 	}
 }
 

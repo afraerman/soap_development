@@ -479,7 +479,7 @@ PositionVector Forces::allForces(Satellite& sat, const Time& time)
 			efs.push_back(ef);
 			double sc = SRPManager::getPhi0DistanceScaling();
 
-			forces += PositionVector({res.total_force[0], res.total_force[1], res.total_force[2]}) * ef * sc * 0.001 / sat.getMass();
+			forces += PositionVector({res.total_force[0], res.total_force[1], res.total_force[2]}) * bench.factor * ef * sc * 0.001 / sat.getMass();
 
 			t_postprocessing_stop = std::chrono::steady_clock::now();
 

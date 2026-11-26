@@ -1012,6 +1012,12 @@ int Input::read_json_file(const std::string& filename, Satellite* sat, Time* tim
 			if (elem.asString() == "right_side") bench.write["right_side"] = true;
 			if (elem.asString() == "non_sun") bench.write["non_sun"] = true;
 		}
+		bench.make_verdict = true;
+	}
+
+	if (bench_p.isMember("solar_factor") && !bench_p["solar_factor"].isNull())
+	{
+		bench.factor = 1.0 + bench_p["solar_factor"].asDouble();
 	}
 
 
