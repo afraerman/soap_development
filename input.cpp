@@ -2394,7 +2394,7 @@ int Input::read_json_file(const std::string& filename, Satellite* sat, Time* tim
 			return 1;
 		}
 		max_reflections = forces["max_reflections"].asInt();
-		if (max_reflections <= 0)
+		if (max_reflections < 0)
 		{
 			std::cerr << "\033[31m#1792_max_reflections Invalid value: max reflections must be a natural number, not " << max_reflections << "\033[0m\n";
 			return 1;

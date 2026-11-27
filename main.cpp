@@ -85,7 +85,7 @@ void quickstart(int argc)
 
 			try
 			{
-				if (!satellite.getHdfFile().empty())
+				if (Forces::account_for_solar_pressure && !satellite.getHdfFile().empty())
 		        {
 		            SRPManager::initSRPEngine(satellite.getHdfFile());
 		            SRPManager::warmupSRP();

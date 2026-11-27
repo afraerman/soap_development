@@ -410,7 +410,7 @@ void Integrator::integrate(std::string savefilename)
 				var_sat1 = *satellite;
 				var_time1 = *time;
 				from_the_start = true;
-				if (!var_sat1.getHdfFile().empty())
+				if (Forces::account_for_solar_pressure && !var_sat1.getHdfFile().empty())
 				{
 					SRPManager::launchJob(var_sat1, var_time1);
 				}
@@ -519,7 +519,7 @@ void Integrator::integrate(std::string savefilename)
 			}
 			
 			if (elapsed_time + h > interval) h = interval - elapsed_time;
-			if (!satellite->getHdfFile().empty())
+			if (Forces::account_for_solar_pressure && !satellite->getHdfFile().empty())
 			{
 				SRPManager::launchJob(*satellite, *time);
 			}
